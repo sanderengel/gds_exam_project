@@ -1,0 +1,4 @@
+*.nc
+tester.ipynb
+__pycache__/
+cache/
