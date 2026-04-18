@@ -6,6 +6,8 @@
 ### IMPORTS ###
 ###############
 
+import sys
+import solara
 import pandas as pd
 
 
@@ -14,7 +16,14 @@ import pandas as pd
 ### FUNCTIONS ###
 #################
 
-def load_lightning_df(N: int = None):
+def get_colors(theme: solara.Reactive) -> tuple[str, str]:
+    light = theme.value == 'Light'
+    text_color = 'black' if light else 'white'
+    glow_color = 'white' if light else 'black'
+    return text_color, glow_color
+
+def load_lightning_df(N: int = None) -> pd.DataFrame:
+    sys.path.append('../')
     lightning_path = 'data/lightning/california_lightning_siege_2020.feather'
     lightning = pd.read_feather(lightning_path)
     lightning = lightning.sort_values(by = 'timestamp', ascending = True)

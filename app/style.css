@@ -16,7 +16,7 @@
     justify-content: start !important;
     padding: 0 8px !important;
     text-transform: none !important;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; */
 }
 
 /* Global text */
@@ -26,9 +26,16 @@
     font-size: 0.9rem;
 }
 
-/* Make selected option bold */
-.v-btn--active .v-btn__content { 
-    font-weight: 900 !important;
+/* Overwrite text and glow color for icons */
+/* .ghost-panel .v-icon {
+    color: black !important; 
+    text-shadow: 1px 1px 2px white !important;
+} */
+
+/* Make selected option orange with black background */
+.v-btn--active .v-icon { 
+    color: rgb(255, 183, 0) !important;
+    text-shadow: 1px 1px 2px black !important;
 }
 
 /* Remove hover circle effect background */
@@ -38,11 +45,21 @@
 
 /* Tighten checkbox spacing */
 .ghost-panel .v-input--checkbox {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+    padding-top: 0px !important;
 }
 
-.ghost-panel h3 {
-    margin-bottom: 4px !important;
+/* Mitigate gridlines */
+.leaflet-tile {
+    outline: 1px solid transparent;
+    backface-visibility: hidden;
+}
+
+.energy-colorbar {
+    width: 100%;
+    height: 5px;
+    border-radius: 4px;
+    background: linear-gradient(to right, var(--color_min), var(--color_mid), var(--color_max));
+    margin: 4px 0;
 }
