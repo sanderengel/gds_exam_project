@@ -27,18 +27,6 @@ cell_hours = load_cell_hours()
 ### TRANSFORM DATA ###
 ######################
 
-# Reclassify land cover to a fuel score
-fuel_map = {
-    1: 0,  # Water, not ignitable
-    2: 10, # Trees, highly ignitable
-    4: 2,  # Flooded vegetation, slightly ignitable
-    5: 4,  # Crops, somewhat ignitable
-    7: 1,  # Built area, barely ignitable
-    8: 1,  # Bare ground, barely ignitable
-    9: 0,  # Snow/ice, not ignitable
-    11: 8  # Rangeland, highly ignitable
-}
-cell_hours['fuel_score'] = cell_hours['landcover'].map(fuel_map).fillna(0).astype(int)
 
 # Log-transform lightning energy
 # TODO: MOVE INTO LOOP AFTER AGGREGATION
@@ -80,8 +68,8 @@ cell_hours_buffered = cell_hours[~is_in_buffer].copy()
 # Assign region 3 as the test set
 train = cell_hours_buffered[cell_hours_buffered['region'] != 3].copy()
 test = cell_hours_buffered[cell_hours_buffered['region'] == 3].copy()
-X_train, y_train = train[[col for col in train.columns if col != 'ignited']], train['ignited']
-X_test, y_test = test[[col for col in test.columns if col != 'ignited']], test['ignited']
+X_train, y_train = train[[col for col in train.columns if col != 'fire_onset']], train['fire_onset']
+X_test, y_test = test[[col for col in test.columns if col != 'fire_onset']], test['fire_onset']
 
 print(f'Original rows: {len(cell_hours)}')
 print(f'Rows after {BUFFER_DEGREES} degree buffers: {len(cell_hours_buffered)}')
