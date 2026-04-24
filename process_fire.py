@@ -9,8 +9,7 @@
 import json
 import h3
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+from pathlib import Path
 
 
 
@@ -19,8 +18,10 @@ import matplotlib.colors as mcolors
 #############
 
 # Define paths
-INPUT_PATH = 'data/fire/DL_FIRE_SV-C2_730956/fire_archive_SV-C2_730956.csv'
-OUTFILE_PATH = 'data/fire/california_fire_polygons.feather'
+ROOT = Path(__file__).resolve().parent
+FIRE_DIR = ROOT / 'data' / 'fire'
+INPUT_PATH = FIRE_DIR / 'DL_FIRE_SV-C2_730956' / 'fire_archive_SV-C2_730956.csv'
+OUTPUT_PATH = FIRE_DIR / 'california_fire_polygons.feather'
 
 
 
@@ -65,16 +66,11 @@ fire_agg['geometry'] = fire_agg['h3_id'].map(
     lambda x: json.dumps([list(c) for c in h3.cell_to_boundary(x)])
 )
 
-# # Add color map
-# norm = mcolors.Normalize(vmin = fire['brightness'].min(), vmax = fire['brightness'].max())
-# cmap = mcolors.LinearSegmentedColormap.from_list('fire', ['#4d0000', '#ff0000'])
-# fire['color_hex'] = [mcolors.to_hex(cmap(norm(v))) for v in fire['brightness']]
-
 
 
 ############
 ### SAVE ###
 ############
 
-fire_agg.to_feather(OUTFILE_PATH)
-print(f'Saved {len(fire_agg)} fire polygons to {OUTFILE_PATH}.')
+fire_agg.to_feather(OUTPUT_PATH)
+print(f'Saved {len(fire_agg)} fire polygons to {OUTPUT_PATH}.')

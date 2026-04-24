@@ -8,7 +8,16 @@
 
 import json
 import pandas as pd
+from pathlib import Path
 
+
+
+#############
+### SETUP ###
+#############
+
+ROOT = Path(__file__).resolve().parent
+DATA_DIR = ROOT / 'data'
 
 
 #################
@@ -28,19 +37,19 @@ def get_data_map(df: pd.DataFrame) -> dict:
     return {hour: group for hour, group in df.groupby('hour_bin')}
 
 def load_lightning_df() -> pd.DataFrame:
-    lightning_path = 'data/lightning/california_lightning_siege_2020.feather'
-    lightning = pd.read_feather(lightning_path)
+    path = DATA_DIR / 'lightning' / 'california_lightning_siege_2020.feather'
+    lightning = pd.read_feather(path)
     lightning = lightning.sort_values(by = 'timestamp', ascending = True)
     return lightning
 
 def load_fire_df():
-    fire_path = 'data/fire/california_fire_polygons.feather'
-    fire = pd.read_feather(fire_path)
+    path = DATA_DIR / 'fire' / 'california_fire_polygons.feather'
+    fire = pd.read_feather(path)
     fire['geometry'] = fire['geometry'].map(json.loads)
     fire = fire.sort_values(by = 'hour_bin', ascending = True)
     return fire
 
 def load_cell_hours():
-    cell_hours_path = 'data/grid_data_base.feather'
-    cell_hours = pd.read_feather(cell_hours_path)
+    path = DATA_DIR / 'feature_grid.feather'
+    cell_hours = pd.read_feather(path)
     return cell_hours

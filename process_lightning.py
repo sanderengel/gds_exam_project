@@ -15,6 +15,7 @@ import xarray as xr
 import osmnx as ox
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+from pathlib import Path
 from glob import glob
 
 
@@ -24,8 +25,10 @@ from glob import glob
 #############
 
 # Define paths
-INPUT_BASE_PATH = 'data/lightning/glmcierra_1-20260402_162540'
-OUTFILE_PATH = 'data/lightning/california_lightning_siege_2020.feather'
+ROOT = Path(__file__).resolve().parent
+LIGHTNING_DIR = ROOT / 'data' / 'lightning'
+INPUT_BASE_PATH = LIGHTNING_DIR / 'glmcierra_1-20260402_162540'
+OUTFILE_PATH = LIGHTNING_DIR / 'california_lightning_siege_2020.feather'
 
 # Load California geometry
 ca_boundary = ox.geocode_to_gdf('California, USA')
