@@ -2,3 +2,5 @@
 tester.ipynb
 __pycache__/
 cache/
+data/grid_data_base.feather
+.pixi/
