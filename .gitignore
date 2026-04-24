@@ -2,5 +2,7 @@
 tester.ipynb
 __pycache__/
 cache/
-data/grid_data_base.feather
+data/feature_grid.feather
 .pixi/
+.vscode/
+*.png
