@@ -7,9 +7,8 @@
 ###############
 
 import solara
-import pandas as pd
 from state import theme
-from utils import get_colors
+from colors import get_colors
 
 
 
