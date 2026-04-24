@@ -6,11 +6,16 @@
 ### IMPORTS ###
 ###############
 
+import sys
 import solara
 from pathlib import Path
-from utils import load_lightning_df
-from layers import get_lightning_layers
+from layers import get_point_layers, get_tessellation_layers
 from components import *
+
+parent_dir = str(Path(__file__).parent.parent)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+from utils import load_lightning_df, load_fire_df
 
 
 
@@ -29,10 +34,10 @@ css_content = css_path.read_text()
 
 @solara.component
 def Page():
-    # Load data
+    # Load lightning data
     lightning = solara.use_memo(lambda: load_lightning_df(), [])
-    lightning_layers = solara.use_memo(lambda: get_lightning_layers(lightning), [lightning])
-    sorted_hours = sorted(lightning_layers.keys())
+    lightning_layers = solara.use_memo(lambda: get_point_layers(lightning), [lightning])
+    lightning_hours = sorted(lightning_layers.keys())
 
     # Compute energy bounds and colors
     lightning_by_energy = lightning.sort_values(by = 'energy')
@@ -41,6 +46,18 @@ def Page():
     energy_min, energy_max = energy_sorted[0], energy_sorted[-1]
     color_min, color_max = lightning_colors[0], lightning_colors[-1]
     color_mid = lightning_colors[len(lightning_colors)//2]
+
+    # Load fire data
+    lookback_hours = 12
+    fire = solara.use_memo(lambda: load_fire_df(), [])
+    fire_layers = solara.use_memo(lambda: get_tessellation_layers(fire, lookback_hours), [fire])
+    fire_hours = sorted(fire_layers.keys())
+
+    # Check if hours match
+    if lightning_hours != fire_hours:
+        solara.Error('Error: Lightning hours do not match fire hours')
+        return
+    hours = lightning_hours
 
     with solara.Div(style = {
         'position': 'relative',
@@ -53,7 +70,7 @@ def Page():
         solara.Style(css_content)
 
         # Components
-        MapComponent(lightning_layers, sorted_hours)
+        MapComponent(lightning_layers, fire_layers, hours)
         TopPanel()
-        BottomPanel(sorted_hours)
-        Legend(energy_min, energy_max, color_min, color_mid, color_max)
+        BottomPanel(hours)
+        Legend(energy_min, energy_max, color_min, color_mid, color_max, lookback_hours)

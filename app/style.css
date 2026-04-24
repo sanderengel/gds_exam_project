@@ -1,4 +1,4 @@
-/* style.css */
+/* APP STYLING */
 
 /* Target the group container */
 .v-btn-toggle {
@@ -26,15 +26,10 @@
     font-size: 0.9rem;
 }
 
-/* Overwrite text and glow color for icons */
-/* .ghost-panel .v-icon {
-    color: black !important; 
-    text-shadow: 1px 1px 2px white !important;
-} */
-
-/* Make selected option orange with black background */
+/* Make selected buttons orange with black background */
 .v-btn--active .v-icon { 
-    color: rgb(255, 183, 0) !important;
+    /* color: rgb(255, 183, 0) !important; */
+    color: var(--button-color) !important;
     text-shadow: 1px 1px 2px black !important;
 }
 
@@ -62,4 +57,16 @@
     border-radius: 4px;
     background: linear-gradient(to right, var(--color_min), var(--color_mid), var(--color_max));
     margin: 4px 0;
+}
+
+/* Hexagon for fire legend */
+.legend-hex {
+    position: relative;
+    width: 18px;
+    height: 20px;
+    background-color: #ff0000;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    opacity: 0.7;
+    display: inline-block;
+    vertical-align: middle;
 }

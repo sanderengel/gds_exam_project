@@ -6,9 +6,17 @@
 ### IMPORTS ###
 ###############
 
+import sys
+import h3
 import solara
 import pandas as pd
-from ipyleaflet import Map, basemaps, basemap_to_tiles, ZoomControl, LayerGroup, CircleMarker
+from pathlib import Path
+from ipyleaflet import Map, basemaps, basemap_to_tiles, ZoomControl, LayerGroup, CircleMarker, GeoJSON
+
+parent_dir = str(Path(__file__).parent.parent)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+from utils import get_timeline, get_data_map
 
 
 
@@ -39,22 +47,16 @@ def get_map(theme: solara.Reactive):
     m.layout.height = '100vh' # Set map to fill full page
     return m
 
-def get_lightning_layers(lightning: pd.DataFrame) -> dict:
-    df = lightning.copy()
-
+def get_point_layers(df: pd.DataFrame) -> dict:
     # Pre-group data into dict for fast lookup
-    data_map = {hour: group for hour, group in df.groupby('hour_bin')}
+    data_map = get_data_map(df)
     
-    # Define absolute start and end of timeline
-    start_time = df['hour_bin'].min()
-    end_time = df['hour_bin'].max()
+    # Get full timeline of hours without breaks
+    timeline = get_timeline(df)
 
-    # Generate all hours between the bounds
-    full_timeline = pd.date_range(start = start_time, end = end_time, freq = 'h')
-
-    # Group lightning by hours and return as dict of layers
+    # Group data by hours and return as dict of layers
     layers = {}
-    for hour in full_timeline:
+    for hour in timeline:
         group = data_map.get(hour, pd.DataFrame())
         markers = [
             CircleMarker(
@@ -67,5 +69,45 @@ def get_lightning_layers(lightning: pd.DataFrame) -> dict:
             ) for _, row in group.iterrows()
         ]
         layers[hour] = LayerGroup(layers = markers, name = f'Strikes {hour}')
+
+    return layers
+
+def get_tessellation_layers(df: pd.DataFrame, lookback_hours: int = 12) -> dict:  
+    # Get full timeline of hours without breaks
+    timeline = get_timeline(df)
+    layers = {}
+
+    for hour in timeline:
+        # Get fires from previous hours
+        start_window = hour - pd.Timedelta(hours = lookback_hours)
+        mask = (df['hour_bin'] > start_window) & (df['hour_bin'] <= hour)
+
+        # Get unique rows based on cell IDs
+        active_ids = df.loc[mask, 'h3_id'].unique().tolist()
+        if len(active_ids) == 0:
+            layers[hour] = LayerGroup(layers = [])
+            continue
+
+        # Convert cells into a GeoJSON geometry
+        geojson_geometry = h3.cells_to_geo(active_ids)
+
+        geojson_data = {
+            'type': 'Feature',
+            'geometry': geojson_geometry,
+            'properties': {}
+        }
+
+        # Create single widget for whole fire complex
+        layer = GeoJSON(
+            data = geojson_data,
+            style = {
+                'color': '#ff0000',
+                'fillColor': '#ff0000',
+                'fillOpacity': .5,
+                'weight': 1
+            }
+        )
+
+        layers[hour] = LayerGroup(layers = [layer])
 
     return layers
