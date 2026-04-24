@@ -7,6 +7,7 @@
 ###############
 
 import os
+import h3
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -133,7 +134,12 @@ for i, fp in enumerate(filepaths):
 if flashes:
     flashes_df = pd.concat(flashes, ignore_index = True)
     flashes_df = _add_lightning_colors(flashes_df)
+    flashes_df['timestamp'] = pd.to_datetime(flashes_df['timestamp']).dt.tz_localize(None)
     flashes_df['hour_bin'] = flashes_df['timestamp'].dt.floor('h')
+
+    # Add tesselation IDs
+    flashes_df['h3_id'] = [h3.latlng_to_cell(lat, lon, 7) for lat, lon in zip(flashes_df['lat'], flashes_df['lon'])]
+
     flashes_df.to_feather(OUTFILE_PATH)
     print(f'Saved {len(flashes_df)} flashes to {OUTFILE_PATH}.')
 else:
