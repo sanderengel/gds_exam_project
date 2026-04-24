@@ -6,6 +6,10 @@ platforms = ["osx-arm64"]
 version = "0.1.0"
 
 [tasks]
+# Run feature engineering script
+build-grid = "python feature_engineering/build_feature_grid.py"
+# Run app
+app = "solara run app/sol.py"
 
 [dependencies]
 python = "==3.11"
