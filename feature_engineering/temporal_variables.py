@@ -105,3 +105,23 @@ def add_lightning_energy(
 
     grid = grid.drop(columns = ['energy_k0']) # Drop energy_k0 when all rings are done
     return grid
+
+def add_temporal_validity(
+    grid: pd.DataFrame,
+    timeline: pd.DatetimeIndex,
+    lookback_hours: int = 72,
+    lookahead_hours: int = 12
+) -> pd.DataFrame:
+    print('Marking temporal validity edges...')
+
+    start_buffer = timeline.min() + pd.Timedelta(hours = lookback_hours)
+    end_buffer = timeline.max() - pd.Timedelta(hours = lookahead_hours)
+
+    grid['is_temporal_valid'] = (
+        (grid['hour_bin'] >= start_buffer) &
+        (grid['hour_bin'] <= end_buffer)
+    ).astype(np.int8)
+
+    print(f"  Assigned {((len(grid[grid['is_temporal_valid'] == 0]) / len(grid)) * 100):.2f}% of rows to temporal buffers")
+
+    return grid

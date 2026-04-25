@@ -15,7 +15,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 from pystac_client.client import Client
-from spatial_utils import get_coordinate_lookup, get_coordinate_arrays
+from spatial_utils import get_coordinate_arrays
 
 
 
@@ -109,9 +109,9 @@ def _fetch_landcover_data(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, ca
 
 def _get_fuel_scores(landcover: np.ndarray) -> pd.Series:
     # Map land cover to fuel scores
-    return pd.Series(landcover).map(FUEL_MAP).fillna(0)
+    return pd.Series(landcover).map(FUEL_MAP).fillna(0).astype(np.int8)
 
-def add_environmental_data(grid: pd.DataFrame, cells: list) -> pd.DataFrame: 
+def add_environmental_data(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataFrame) -> pd.DataFrame: 
     # Initialize PC catalog
     catalog = pystac_client.Client.open(
         'https://planetarycomputer.microsoft.com/api/stac/v1',
@@ -119,7 +119,6 @@ def add_environmental_data(grid: pd.DataFrame, cells: list) -> pd.DataFrame:
     )
 
     # Get spatial lookup and coordinate arrays
-    coordinate_lookup = get_coordinate_lookup(cells)
     x_da, y_da = get_coordinate_arrays(coordinate_lookup)
 
     lats, lons = zip(*[h3.cell_to_latlng(c) for c in cells])

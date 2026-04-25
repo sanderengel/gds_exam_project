@@ -8,8 +8,8 @@
 
 import sys
 from pathlib import Path
-from spatial_utils import build_impact_grid, get_neighbor_lookup
-from temporal_variables import add_fire_onset, add_neighbor_fire, add_lightning_energy
+from spatial_utils import build_impact_grid, get_neighbor_lookup, get_coordinate_lookup, add_buffered_regions
+from temporal_variables import add_fire_onset, add_neighbor_fire, add_lightning_energy, add_temporal_validity
 from raster_features import add_environmental_data
 
 parent_dir = str(Path(__file__).parent.parent)
@@ -36,10 +36,11 @@ lightning = load_lightning_df()
 base_cols = ['h3_id', 'hour_bin']
 
 # Build grid and impact cells
-grid, impact_cells = build_impact_grid(fire, lightning, base_cols)
+grid, impact_cells, timeline = build_impact_grid(fire, lightning, base_cols)
 
-# Get neighbor lookup 
-neighbors = get_neighbor_lookup(impact_cells)
+# Get coordinate and neighbor lookup 
+neighbor_lookup = get_neighbor_lookup(impact_cells)
+coordinate_lookup = get_coordinate_lookup(impact_cells)
 
 # Add fire onset label (y) based on whether fire observed within next 12 hours
 grid = add_fire_onset(grid, fire, base_cols)
@@ -47,17 +48,23 @@ grid = add_fire_onset(grid, fire, base_cols)
 # Set index to the base cols
 grid = grid.set_index(base_cols).sort_index()
 
-# Add neighbor fire based on if any distance 1 neighbors have fire at current time
-grid = add_neighbor_fire(grid, neighbors)
+# Add neighbor fire based on if any distance 1 _lookup have fire at current time
+grid = add_neighbor_fire(grid, neighbor_lookup)
 
 # Add lightning energy matrix
-grid = add_lightning_energy(grid, lightning, neighbors, base_cols)
+grid = add_lightning_energy(grid, lightning, neighbor_lookup, base_cols)
 
 # Reset index to get base cols back as columns
 grid = grid.reset_index()
 
 # Add slope and fuel features
-grid = add_environmental_data(grid, impact_cells)
+grid = add_environmental_data(grid, impact_cells, coordinate_lookup)
+
+# Add regions
+grid = add_buffered_regions(grid, coordinate_lookup)
+
+# Add temporal validity flag
+grid = add_temporal_validity(grid, timeline)
 
 
 

@@ -23,7 +23,12 @@ from utils import get_timeline
 ### FUNCTIONS ###
 #################
 
-def build_impact_grid(fire: pd.DataFrame, lightning: pd.DataFrame, base_cols: list) -> pd.DataFrame:
+def build_impact_grid(
+    fire: pd.DataFrame,
+    lightning: pd.DataFrame,
+    base_cols: list,
+    max_k: int = 4
+) -> tuple[pd.DataFrame, list, pd.DatetimeIndex]:
     print('Creating cell hours base grid...')
 
     # Get all unique h3 IDs from the fire data
@@ -33,13 +38,13 @@ def build_impact_grid(fire: pd.DataFrame, lightning: pd.DataFrame, base_cols: li
     lightning_impact_zone = set()
     lightning_cells = lightning['h3_id'].unique()
     for c in lightning_cells:
-        lightning_impact_zone.update(h3.grid_disk(c, 4)) # Cell c plus neighbors within distance 4
+        lightning_impact_zone.update(h3.grid_disk(c, max_k)) # Cell c plus neighbors within distance max_k
 
     # Combine to get all active cells and impact zone
     impact_cells = list(fire_cells.union(lightning_impact_zone))
 
     print(f"  Active cells: {len(set(fire['h3_id']).union(set(lightning['h3_id'])))}")
-    print(f'  Active cells plus impact zone (k=4): {len(impact_cells)}')
+    print(f'  Active cells plus impact zone (k={max_k}): {len(impact_cells)}')
 
     # Create the full hourly timeline 
     lightning_timeline = get_timeline(lightning)
@@ -61,7 +66,7 @@ def build_impact_grid(fire: pd.DataFrame, lightning: pd.DataFrame, base_cols: li
     print(f'  Total cell hours: {len(grid)}')
 
     grid = grid.sort_values(base_cols).reset_index(drop = True)
-    return grid, impact_cells
+    return grid, impact_cells, timeline
 
 def get_coordinate_lookup(cells: list) -> pd.DataFrame:
     print('Building spatial lookup table...')
@@ -97,3 +102,41 @@ def get_sparse_spatial_map(grid: pd.DataFrame, neighbor_lookup: pd.DataFrame) ->
         .merge(neighbor_lookup, left_on = 'h3_id', right_on = 'neighbor_id')
         .groupby(['target_id', 'hour_bin', 'k'])['energy_k0'].sum()
     )
+
+def add_buffered_regions(
+    grid: pd.DataFrame,
+    coordinate_lookup: pd.DataFrame,
+    n_regions: int = 4,
+    buffer_degrees: float = 0.25
+) -> pd.DataFrame:
+    print(f'Assigning data to {n_regions} regions with {buffer_degrees} degree buffer zones...')
+    # Add regions to lookup
+    region_codes, bins = pd.qcut(
+        coordinate_lookup['lat'], 
+        n_regions, 
+        labels = False,
+        retbins = True
+    )
+    # Convert to 1-indexed regions to reserve 0 for buffer zone
+    coordinate_lookup['region'] = region_codes + 1
+
+    if buffer_degrees:
+        half_buffer = buffer_degrees / 2
+        boundaries = bins[1:-1] # Boundaries between regions, not endpoints
+
+        # Create buffer mask, keeping rows outside the half_buffer of any boundary
+        is_in_buffer = pd.Series(False, coordinate_lookup.index)
+        for b in boundaries:
+            is_in_buffer |= (
+                (coordinate_lookup['lat'] > (b - half_buffer)) &
+                (coordinate_lookup['lat'] < (b + half_buffer))
+            )
+
+        # Set regions inside buffer zones to 0
+        coordinate_lookup.loc[is_in_buffer, 'region'] = 0
+
+    # Add regions to grid
+    grid = grid.merge(coordinate_lookup[['h3_id', 'region']], on = 'h3_id', how = 'left')
+    print(f"  Assigned {((len(grid[grid['region'] == 0]) / len(grid)) * 100):.2f}% of rows to region buffers")
+
+    return grid
