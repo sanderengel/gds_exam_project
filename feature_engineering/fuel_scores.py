@@ -1,4 +1,4 @@
-### Sample raster features
+### Sample fuel scores from raster
 
 
 
@@ -30,56 +30,20 @@ HTTPS_ENV_ADDITIONS = {
 }
 
 FUEL_MAP = {
-    1: 0,  # Water, not ignitable
-    2: 10, # Trees, highly ignitable
-    4: 2,  # Flooded vegetation, slightly ignitable
-    5: 4,  # Crops, somewhat ignitable
-    7: 1,  # Built area, barely ignitable
-    8: 1,  # Bare ground, barely ignitable
-    9: 0,  # Snow/ice, not ignitable
-    11: 8  # Rangeland, highly ignitable
+    1: 0.0,  # Water, not ignitable
+    2: 1.0, # Trees, highly ignitable
+    4: 0.2,  # Flooded vegetation, slightly ignitable
+    5: 0.4,  # Crops, somewhat ignitable
+    7: 0.1,  # Built area, barely ignitable
+    8: 0.1,  # Bare ground, barely ignitable
+    9: 0.0,  # Snow/ice, not ignitable
+    11: 0.8  # Rangeland, highly ignitable
 }
 
 
 #################
 ### FUNCTIONS ###
 #################
-
-def _fetch_slope_data(
-    bbox: list,
-    lats: tuple,
-    x_da: xr.DataArray,
-    y_da: xr.DataArray,
-    catalog: Client
-) -> np.ndarray:
-    print('Fetching elevation data and computing slopes...')
-    # Fetch elevation from NASADEM
-    search_dem = catalog.search(collections = ['nasadem'], bbox = bbox, limit = 100)
-    items_dem = search_dem.item_collection()
-    print(f'  Found {len(items_dem)} elevation tiles.')
-
-    dem_stack = stackstac.stack(
-        items_dem,
-        assets = ['elevation'],
-        epsg = 4326,
-        bounds_latlon = bbox,
-        resolution = .001,
-        chunksize = 2048,
-        gdal_env = stackstac.DEFAULT_GDAL_ENV.updated(HTTPS_ENV_ADDITIONS)
-    )
-    print('  Computing elevation mosaic...')
-    dem_raster = stackstac.mosaic(dem_stack.sel(band = 'elevation')).compute()
-
-    # Compute gradients
-    avg_lat = np.mean(lats)
-    meters_per_degree_lat = 111000
-    meters_per_degree_lon = meters_per_degree_lat * np.cos(np.radians(avg_lat))
-    dy, dx = np.gradient(dem_raster.values, .001 * meters_per_degree_lat, .001 * meters_per_degree_lon)
-    slope = np.sqrt(dx**2 + dy**2)
-    slope_deg = np.rad2deg(np.arctan(slope))
-    slope_da = dem_raster.copy(data = slope_deg).fillna(0)
-
-    return slope_da.sel(x = x_da, y = y_da, method = 'nearest').values
 
 def _fetch_landcover_data(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, catalog: Client) -> np.ndarray:
     print('Fetching landcover data...')
@@ -109,9 +73,9 @@ def _fetch_landcover_data(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, ca
 
 def _get_fuel_scores(landcover: np.ndarray) -> pd.Series:
     # Map land cover to fuel scores
-    return pd.Series(landcover).map(FUEL_MAP).fillna(0).astype(np.int8)
+    return pd.Series(landcover).map(FUEL_MAP).fillna(0)
 
-def add_environmental_data(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataFrame) -> pd.DataFrame: 
+def add_fuel_scores(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataFrame) -> pd.DataFrame: 
     # Initialize PC catalog
     catalog = pystac_client.Client.open(
         'https://planetarycomputer.microsoft.com/api/stac/v1',
@@ -124,8 +88,8 @@ def add_environmental_data(grid: pd.DataFrame, cells: list, coordinate_lookup: p
     lats, lons = zip(*[h3.cell_to_latlng(c) for c in cells])
     bbox = [min(lons), min(lats), max(lons), max(lats)]
     
-    # Get slope data
-    coordinate_lookup['slope'] = _fetch_slope_data(bbox, lats, x_da, y_da, catalog)
+    # # Get slope data
+    # coordinate_lookup['slope'] = _fetch_slope_data(bbox, lats, x_da, y_da, catalog)
 
     # Get fuel data
     landcover = _fetch_landcover_data(bbox, x_da, y_da, catalog)
@@ -133,7 +97,7 @@ def add_environmental_data(grid: pd.DataFrame, cells: list, coordinate_lookup: p
 
     # Map onto grid
     grid = grid.merge(
-        coordinate_lookup[['h3_id', 'slope', 'fuel_score']],
+        coordinate_lookup[['h3_id', 'fuel_score']],
         on = 'h3_id',
         how = 'left'
     )

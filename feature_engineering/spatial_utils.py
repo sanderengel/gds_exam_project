@@ -8,10 +8,10 @@
 
 import sys
 import h3
+import numpy as np
 import xarray as xr
 import pandas as pd
 from pathlib import Path
-from itertools import product
 
 parent_dir = str(Path(__file__).parent.parent)
 if parent_dir not in sys.path:
@@ -19,54 +19,71 @@ if parent_dir not in sys.path:
 from utils import get_timeline
 
 
+
 #################
 ### FUNCTIONS ###
 #################
 
-def build_impact_grid(
-    fire: pd.DataFrame,
-    lightning: pd.DataFrame,
-    base_cols: list,
-    max_k: int = 4
-) -> tuple[pd.DataFrame, list, pd.DatetimeIndex]:
-    print('Creating cell hours base grid...')
+def get_unique_cells(df: pd.DataFrame) -> set:
+    return df['h3_id'].unique().tolist()
 
-    # Get all unique h3 IDs from the fire data
-    fire_cells = set(fire['h3_id'].unique())
-
-    # Add the k=4 impact zone for every lightning strike
-    lightning_impact_zone = set()
-    lightning_cells = lightning['h3_id'].unique()
-    for c in lightning_cells:
-        lightning_impact_zone.update(h3.grid_disk(c, max_k)) # Cell c plus neighbors within distance max_k
-
-    # Combine to get all active cells and impact zone
-    impact_cells = list(fire_cells.union(lightning_impact_zone))
-
-    print(f"  Active cells: {len(set(fire['h3_id']).union(set(lightning['h3_id'])))}")
-    print(f'  Active cells plus impact zone (k={max_k}): {len(impact_cells)}')
-
+def get_combined_timeline(fire: pd.DataFrame, lightning: pd.DataFrame) -> pd.DatetimeIndex:
     # Create the full hourly timeline 
     lightning_timeline = get_timeline(lightning)
     fire_timeline = get_timeline(fire)
 
     if lightning_timeline.equals(fire_timeline):
-        timeline = lightning_timeline
+        return lightning_timeline
     else:
         raise Exception('Lightning timeline does not match fire timeline')
 
-    print(f'  Total hours: {len(timeline)}')
+def build_sparse_impact_grid(
+    fire: pd.DataFrame,
+    lightning: pd.DataFrame,
+    neighbor_lookup: pd.DataFrame,
+    base_cols: list,
+    max_k: int = 4,
+    w: int = 72
+) -> pd.DataFrame:
+    print(f'Creating sparse impact grid by pushing lightning energy (k<={max_k}, w={w})...')
 
-    # Build df
-    grid = pd.DataFrame(
-        list(product(impact_cells, timeline)), # All combinations of area and time
-        columns = base_cols
+    # Expand spatially by mapping strikes to neighbors
+    print('  Performing spatial expansion...')
+    spatial_impact = lightning.merge(
+        neighbor_lookup[neighbor_lookup['k'] <= max_k],
+        left_on = 'h3_id',
+        right_on = 'neighbor_id'
+    ).groupby(['target_id', 'hour_bin'])['energy'].sum().reset_index()
+    spatial_impact = spatial_impact.rename(columns = {'target_id': 'h3_id'})
+    print(f'    Created spatial impact table with {len(spatial_impact)} rows.')
+
+    # Expand temporaly by pushing energy forward w hours
+    print('  Performing temporal expansion...')
+    offsets = pd.DataFrame({'offset': pd.to_timedelta(range(w), unit = 'h')})
+    energy_grid = (
+        spatial_impact.assign(key = 1)
+        .merge(offsets.assign(key = 1), on = 'key')
+        .drop('key', axis = 1)
     )
+    energy_grid['hour_bin'] += energy_grid['offset']
+    print(f'    Created full lightning energy grid with {len(energy_grid)} rows.')
 
-    print(f'  Total cell hours: {len(grid)}')
+    # Sum overlapping energy windows
+    energy_col = f'energy_k{max_k}_w{w}'
+    energy_grid = energy_grid.groupby(['h3_id', 'hour_bin'])['energy'].sum().reset_index()
+    energy_grid = energy_grid.rename(columns = {'energy': energy_col})
 
-    grid = grid.sort_values(base_cols).reset_index(drop = True)
-    return grid, impact_cells, timeline
+    # Union with fire to ensure fire cell-hours exist regardsless of lightning
+    print('  Merging fire observations...')
+    fire_seeds = fire[base_cols].copy()
+    fire_seeds['has_fire'] = 1
+    impact_grid = energy_grid.merge(fire_seeds, on = base_cols, how = 'outer')
+    impact_grid['has_fire'] = impact_grid['has_fire'].fillna(0).astype(np.int8)
+    impact_grid[energy_col] = impact_grid[energy_col].fillna(0)
+    print(f'    Created full lightning and fire impact grid with {len(impact_grid)} rows.')
+
+    impact_grid = impact_grid.sort_values(base_cols).reset_index(drop = True)
+    return impact_grid
 
 def get_coordinate_lookup(cells: list) -> pd.DataFrame:
     print('Building spatial lookup table...')
@@ -78,65 +95,30 @@ def get_coordinate_lookup(cells: list) -> pd.DataFrame:
     })
     return coordinate_lookup
 
-def get_neighbor_lookup(cells: list) -> pd.DataFrame:
-    print('Building neighbor lookup table...')
+def get_neighbor_lookup(cells: list, max_k: int = 20) -> pd.DataFrame:
+    print(f'Building neighbor lookup table (k<={max_k})...')
     neighbors = []
     for c in cells:
-        for k in range(1, 5):
+        for k in range(1, max_k + 1):
             for nb in h3.grid_ring(c, k):
                 neighbors.append({'target_id': c, 'neighbor_id': nb, 'k': k})
-    return pd.DataFrame(neighbors)
+    neighbors_lookup = pd.DataFrame(neighbors)
+    print(f'  Finished creating neighbor lookup with {len(neighbors_lookup)} rows.')
+    return neighbors_lookup
+
+def get_min_h3_dist(target: str, cells: set, max_dist: int) -> int:
+    # Minimum distance is zero if target is in the cells
+    if target in cells:
+        return 0
+    
+    min_dist = max_dist
+    for c in cells:
+        dist = h3.grid_distance(target, c)
+        if dist < min_dist:
+            min_dist = dist
+    return min_dist
 
 def get_coordinate_arrays(coordinate_lookup: pd.DataFrame) -> tuple[xr.DataArray, xr.DataArray]:
     x_da = xr.DataArray(coordinate_lookup['lon'].values, dims = 'h3_index')
     y_da = xr.DataArray(coordinate_lookup['lat'].values, dims = 'h3_index')
     return x_da, y_da
-
-def get_sparse_spatial_map(grid: pd.DataFrame, neighbor_lookup: pd.DataFrame) -> pd.DataFrame:
-    # Find spatial neighbors for active lightning cells
-    active_lightning = grid[grid['energy_k0'] > 0][['energy_k0']].reset_index()
-
-    # Merge active strikes with neighbors, group by target, time, k
-    return (
-        active_lightning
-        .merge(neighbor_lookup, left_on = 'h3_id', right_on = 'neighbor_id')
-        .groupby(['target_id', 'hour_bin', 'k'])['energy_k0'].sum()
-    )
-
-def add_buffered_regions(
-    grid: pd.DataFrame,
-    coordinate_lookup: pd.DataFrame,
-    n_regions: int = 4,
-    buffer_degrees: float = 0.25
-) -> pd.DataFrame:
-    print(f'Assigning data to {n_regions} regions with {buffer_degrees} degree buffer zones...')
-    # Add regions to lookup
-    region_codes, bins = pd.qcut(
-        coordinate_lookup['lat'], 
-        n_regions, 
-        labels = False,
-        retbins = True
-    )
-    # Convert to 1-indexed regions to reserve 0 for buffer zone
-    coordinate_lookup['region'] = region_codes + 1
-
-    if buffer_degrees:
-        half_buffer = buffer_degrees / 2
-        boundaries = bins[1:-1] # Boundaries between regions, not endpoints
-
-        # Create buffer mask, keeping rows outside the half_buffer of any boundary
-        is_in_buffer = pd.Series(False, coordinate_lookup.index)
-        for b in boundaries:
-            is_in_buffer |= (
-                (coordinate_lookup['lat'] > (b - half_buffer)) &
-                (coordinate_lookup['lat'] < (b + half_buffer))
-            )
-
-        # Set regions inside buffer zones to 0
-        coordinate_lookup.loc[is_in_buffer, 'region'] = 0
-
-    # Add regions to grid
-    grid = grid.merge(coordinate_lookup[['h3_id', 'region']], on = 'h3_id', how = 'left')
-    print(f"  Assigned {((len(grid[grid['region'] == 0]) / len(grid)) * 100):.2f}% of rows to region buffers")
-
-    return grid
