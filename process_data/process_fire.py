@@ -6,10 +6,16 @@
 ### IMPORTS ###
 ###############
 
+import sys
 import json
 import h3
 import pandas as pd
 from pathlib import Path
+
+parent_dir = str(Path(__file__).parent.parent)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+from utils import add_json_geometry
 
 
 
@@ -26,7 +32,7 @@ OUTPUT_PATH = FIRE_DIR / 'california_fire_polygons.feather'
 
 
 #################
-### READ DATA ###
+### LOAD DATA ###
 #################
 
 fire = pd.read_csv(INPUT_PATH)
@@ -59,12 +65,7 @@ fire['h3_id'] = [h3.latlng_to_cell(lat, lon, 7) for lat, lon in zip(fire['lat'],
 fire_agg = fire.groupby(['hour_bin', 'h3_id']).agg({'brightness': 'max'}).reset_index()
 
 # Pre-calculate the geometry for every unique cell in the data
-unique_cells = fire_agg['h3_id'].unique()
-boundary_map = {cell: h3.cell_to_boundary(cell) for cell in unique_cells}
-# Serialize geometries as JSON strings to avoid feather storing as arrays
-fire_agg['geometry'] = fire_agg['h3_id'].map(
-    lambda x: json.dumps([list(c) for c in h3.cell_to_boundary(x)])
-)
+fire_agg = add_json_geometry(fire_agg)
 
 
 

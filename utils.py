@@ -7,6 +7,7 @@
 ###############
 
 import json
+import h3
 import pandas as pd
 from pathlib import Path
 
@@ -50,7 +51,23 @@ def load_fire_df():
     fire = fire.sort_values(by = 'hour_bin', ascending = True)
     return fire
 
-def load_feature_grid():
-    path = DATA_DIR / 'features' / 'feature_grid.feather'
-    feature_grid = pd.read_feather(path)
-    return feature_grid
+def load_risk_grid():
+    path = DATA_DIR / 'risk' / 'risk_grid.feather'
+    risk_grid = pd.read_feather(path)
+    risk_grid = risk_grid.sort_values(by = 'hour_bin', ascending = True)
+    return risk_grid
+
+def load_risk_enhanced_grid():
+    path = DATA_DIR / 'risk' / 'risk_grid_enhanced.feather'
+    risk_grid_enhanced = pd.read_feather(path)
+    risk_grid_enhanced['geometry'] = risk_grid_enhanced['geometry'].map(json.loads)
+    risk_grid_enhanced = risk_grid_enhanced.sort_values(by = 'hour_bin', ascending = True)
+    return risk_grid_enhanced
+
+def add_json_geometry(df: pd.DataFrame) -> pd.DataFrame:
+    # Serialize geometries as JSON strings to avoid feather storing as arrays
+    print('Adding json geometry column...')
+    df['geometry'] = df['h3_id'].map(
+        lambda x: json.dumps([list(c) for c in h3.cell_to_boundary(x)])
+    )
+    return df
