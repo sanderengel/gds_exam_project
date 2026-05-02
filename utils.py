@@ -20,13 +20,14 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / 'data'
 
 
+
 #################
 ### FUNCTIONS ###
 #################
 
-def get_timeline(df: pd.DataFrame) -> pd.DatetimeIndex:
+def get_timeline(df: pd.DataFrame, start_offset_hours: int = 0) -> pd.DatetimeIndex:
     # Define absolute start and end of timeline
-    start_time = df['hour_bin'].min().floor('d')
+    start_time = df['hour_bin'].min().floor('d') + pd.Timedelta(hours = start_offset_hours)
     end_time = df['hour_bin'].max().ceil('d') - pd.Timedelta(hours = 1)
 
     # Generate all hours between the bounds
@@ -49,7 +50,7 @@ def load_fire_df():
     fire = fire.sort_values(by = 'hour_bin', ascending = True)
     return fire
 
-def load_cell_hours():
-    path = DATA_DIR / 'feature_grid.feather'
-    cell_hours = pd.read_feather(path)
-    return cell_hours
+def load_feature_grid():
+    path = DATA_DIR / 'features' / 'feature_grid.feather'
+    feature_grid = pd.read_feather(path)
+    return feature_grid

@@ -52,7 +52,7 @@ def get_point_layers(df: pd.DataFrame) -> dict:
     data_map = get_data_map(df)
     
     # Get full timeline of hours without breaks
-    timeline = get_timeline(df)
+    timeline = get_timeline(df, start_offset_hours = 72) # Cut off first 72 hours, only used for analysis
 
     # Group data by hours and return as dict of layers
     layers = {}
@@ -74,7 +74,7 @@ def get_point_layers(df: pd.DataFrame) -> dict:
 
 def get_tessellation_layers(df: pd.DataFrame, lookback_hours: int = 12) -> dict:  
     # Get full timeline of hours without breaks
-    timeline = get_timeline(df)
+    timeline = get_timeline(df, start_offset_hours = 72) # Cut off first 72 hours, only used for analysis
     layers = {}
 
     for hour in timeline:
