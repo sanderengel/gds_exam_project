@@ -80,6 +80,10 @@ grid = add_risk(grid, energy_col)
 keep_cols = base_cols + ['dist_fire', 'risk']
 risk_grid = grid[keep_cols].copy()
 
+# Drop any rows with 0 risk
+risk_grid = risk_grid[risk_grid['risk'] > 0]
+
+
 
 ############
 ### SAVE ###
