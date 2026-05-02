@@ -12,11 +12,6 @@ import h3
 import pandas as pd
 from pathlib import Path
 
-parent_dir = str(Path(__file__).parent.parent)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-from utils import add_json_geometry
-
 
 
 #############
@@ -63,9 +58,6 @@ fire['h3_id'] = [h3.latlng_to_cell(lat, lon, 7) for lat, lon in zip(fire['lat'],
 
 # Group by hours and tessellation IDs
 fire_agg = fire.groupby(['hour_bin', 'h3_id']).agg({'brightness': 'max'}).reset_index()
-
-# Pre-calculate the geometry for every unique cell in the data
-fire_agg = add_json_geometry(fire_agg)
 
 
 
