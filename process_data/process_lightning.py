@@ -44,7 +44,7 @@ bbox = {'min_lon': -124.5, 'max_lon': -114.1, 'min_lat': 32.5, 'max_lat': 42.0}
 ### FUNCTIONS ###
 #################
 
-def extract_values(ds: xr.Dataset) -> tuple[
+def _extract_values(ds: xr.Dataset) -> tuple[
     np.ndarray, np.ndarray, np.ndarray, np.ndarray
 ]:
     lats = ds['FLASH_LAT'].values
@@ -53,7 +53,7 @@ def extract_values(ds: xr.Dataset) -> tuple[
     offsets = ds['FLASH_TIME_OFFSET_OF_FIRST_EVENT'].values
     return lats, lons, energy, offsets
     
-def get_bbox_mask(lats: np.ndarray, lons: np.ndarray) -> np.ndarray:
+def _get_bbox_mask(lats: np.ndarray, lons: np.ndarray) -> np.ndarray:
     return (
         (lons >= bbox['min_lon']) &
         (lons <= bbox['max_lon']) &
@@ -61,7 +61,7 @@ def get_bbox_mask(lats: np.ndarray, lons: np.ndarray) -> np.ndarray:
         (lats <= bbox['max_lat'])
     )
 
-def get_temp_gdf(
+def _get_temp_gdf(
     lats: np.ndarray,
     lons: np.ndarray,
     energy: np.ndarray,
@@ -105,14 +105,14 @@ for i, fp in enumerate(filepaths):
         # Attempt to load the file in xarray
         with xr.open_dataset(fp) as ds:
             # Extract latitudes, longitudes, energy, time offsets
-            lats, lons, energy, offsets = extract_values(ds)
+            lats, lons, energy, offsets = _extract_values(ds)
 
             # Get rought cut mask
-            mask = get_bbox_mask(lats, lons)
+            mask = _get_bbox_mask(lats, lons)
 
             if any(mask):
                 # Define temporary gdf to store flashes within bbox
-                gdf_temp = get_temp_gdf(lats, lons, energy, offsets, mask)
+                gdf_temp = _get_temp_gdf(lats, lons, energy, offsets, mask)
 
                 # Spatial join keeps only points within CA polygon
                 gdf_ca = gpd.sjoin(gdf_temp, ca_boundary[['geometry']], how = 'inner', predicate = 'intersects')
