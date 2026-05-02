@@ -18,9 +18,9 @@ from pathlib import Path
 #############
 
 # Define paths
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 FIRE_DIR = ROOT / 'data' / 'fire'
-INPUT_PATH = FIRE_DIR / 'DL_FIRE_SV-C2_730956' / 'fire_archive_SV-C2_730956.csv'
+INPUT_PATH = FIRE_DIR / 'DL_FIRE_SV-C2_745271' / 'fire_archive_SV-C2_745271.csv'
 OUTPUT_PATH = FIRE_DIR / 'california_fire_polygons.feather'
 
 

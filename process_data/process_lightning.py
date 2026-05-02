@@ -25,9 +25,9 @@ from glob import glob
 #############
 
 # Define paths
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 LIGHTNING_DIR = ROOT / 'data' / 'lightning'
-INPUT_BASE_PATH = LIGHTNING_DIR / 'glmcierra_1-20260402_162540'
+INPUT_BASE_PATH = LIGHTNING_DIR / 'glmcierra'
 OUTFILE_PATH = LIGHTNING_DIR / 'california_lightning_siege_2020.feather'
 
 # Load California geometry
@@ -37,7 +37,8 @@ ca_boundary = ca_boundary.to_crs('EPSG:4326')
 # Define rough bbox, used for inital filtering pass
 bbox = {'min_lon': -124.5, 'max_lon': -114.1, 'min_lat': 32.5, 'max_lat': 42.0}
 
-
+32.5,-124.5
+42.0,-114.1
 
 #################
 ### FUNCTIONS ###
