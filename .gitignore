@@ -2,7 +2,9 @@
 tester.ipynb
 __pycache__/
 cache/
-data/feature_grid.feather
 .pixi/
 .vscode/
 *.png
+cookies.*
+netrc.*
+graveyard/

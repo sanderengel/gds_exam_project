@@ -10,6 +10,10 @@ version = "0.1.0"
 build-grid = "python feature_engineering/build_feature_grid.py"
 # Run app
 app = "solara run app/sol.py"
+# Download raw lightning data
+download-lightning = "mkdir -p data/lightning/glmcierra && cd data/lightning/glmcierra && bash ../../../scripts/download-lightning.sh"
+# Process raw data
+process-data = "python process_data/process_lightning.py && python process_data/process_fire.py"
 
 [dependencies]
 python = "==3.11"
