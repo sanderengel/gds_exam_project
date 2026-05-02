@@ -44,7 +44,7 @@ def build_sparse_impact_grid(
     base_cols: list,
     max_k: int = 4,
     w: int = 72
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, str]:
     print(f'Creating sparse impact grid by pushing lightning energy (k<={max_k}, w={w})...')
 
     # Expand spatially by mapping strikes to neighbors
@@ -83,7 +83,7 @@ def build_sparse_impact_grid(
     print(f'    Created full lightning and fire impact grid with {len(impact_grid)} rows.')
 
     impact_grid = impact_grid.sort_values(base_cols).reset_index(drop = True)
-    return impact_grid
+    return impact_grid, energy_col
 
 def get_coordinate_lookup(cells: list) -> pd.DataFrame:
     print('Building spatial lookup table...')

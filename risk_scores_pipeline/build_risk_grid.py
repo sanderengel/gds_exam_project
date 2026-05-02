@@ -1,4 +1,4 @@
-### Coordinator script to build cell hours data table
+### Coordinator script to build risk grid
 
 
 
@@ -9,13 +9,25 @@
 import sys
 from pathlib import Path
 from spatial_utils import *
-from fire_variables import *
+from fire_features import add_fire_distance_persistent
 from fuel_scores import add_fuel_scores
+from risk_scoring import add_risk
 
 parent_dir = str(Path(__file__).parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 from utils import load_lightning_df, load_fire_df
+
+
+
+#############
+### SETUP ###
+#############
+
+ROOT = Path(__file__).resolve().parent.parent
+OUTPUT_DIR = ROOT / 'data' / 'risk'
+OUTPUT_PATH = OUTPUT_DIR / 'risk_grid.feather'
+OUTPUT_DIR.mkdir(parents = True, exist_ok = True)
 
 
 
@@ -28,9 +40,9 @@ lightning = load_lightning_df()
 
 
 
-##################
-### BUILD GRID ###
-##################
+#######################
+### BUILD RISK GRID ###
+#######################
 
 MAX_K = 4
 W = 72
@@ -43,7 +55,7 @@ lightning_cells = get_unique_cells(lightning)
 lightning_neighbor_lookup = get_neighbor_lookup(lightning_cells, MAX_K)
 
 # Build impact grid directly from aggregated energy
-grid = build_sparse_impact_grid(fire, lightning, lightning_neighbor_lookup, base_cols, MAX_K, W)
+grid, energy_col = build_sparse_impact_grid(fire, lightning, lightning_neighbor_lookup, base_cols, MAX_K, W)
 
 # Get unique cell IDs for environmental features
 impact_cells = get_unique_cells(grid)
@@ -55,17 +67,23 @@ grid = add_fire_distance_persistent(grid, fire, w = W)
 # Add fuel scores
 grid = add_fuel_scores(grid, impact_cells, coordinate_lookup)
 
+# Add risk
+grid = add_risk(grid, energy_col)
+
+
+
+###############
+### CLEANUP ###
+###############
+
+# Drop columns which are no longer used
+keep_cols = base_cols + ['dist_fire', 'risk']
+risk_grid = grid[keep_cols].copy()
 
 
 ############
 ### SAVE ###
 ############
 
-root = Path(__file__).resolve().parent.parent
-save_dir = root / 'data' / 'features'
-save_path = save_dir / 'feature_grid.feather'
-
-save_dir.mkdir(parents = True, exist_ok = True)
-
-grid.to_feather(save_path)
-print(f'Saved grid data to {save_path}.')
+risk_grid.to_feather(OUTPUT_PATH)
+print(f'Saved risk grid to {OUTPUT_PATH}.')
