@@ -1,6 +1,8 @@
-# Lightning Strikes and Wildfare during the 2020 California Lightning Siege
+# Lightning Strikes and Wildfire during the 2020 California Lightning Siege
 
 This app allows you to explore lightning strikes, resulting wildfires, and fire risk during the 2020 lightning siege in California in an interactive app. 
+
+![App screenshot](img/example.png)
 
 ## Calculating Risk
 
@@ -21,15 +23,17 @@ where:
 
 - $R(c,t)$ is the risk score for a H3 hexagonal cell $c$ at time $t$.
 
-- $E_{4,72}$ is the sum of lightning energy in all neighbor cells at distance $k \le 4$ and between time $t$ and time $t-72$.
+- $E_{4,72}$ is the sum of lightning energy in all neighbor cells at distance $k \le 4$ and between times $t$ and $t-72$.
 
 - $L_\text{max}$ is the 99th percentile of all $\log_{10} (1 + E_{4,72}(c,t) \times 10^{14.5})$ terms in the data.
 
 - $F(c)$ is the fuel score of cell $c$, derived from it's land-cover.
 
-- $D_{24}(c,t)$ is the distance (in terms of cells) between cell $c$ and the nearest cell with an observed fire between time $t$ and time $t-24$.
+- $D_{24}(c,t)$ is the distance (in terms of cells) between cell $c$ and the nearest cell with an observed fire between times $t$ and $t-24$.
 
 ## Getting Started
+
+_Note: This project was developed and tested on macOS (Apple Silicon, osx-arm64). Compatibility with Linux or Windows is not guarenteed._
 
 ### 1. Prerequisites
 
@@ -75,15 +79,15 @@ Use the app by running:
 pixi run app
 ```
 
-_Note: while I have tried to optimize the app as much as possible (I am no expert), expect it to take at least 30 seconds to load..._
+_Note: While I have tried to optimize the app as much as possible (I am no expert), expect it to take at least 30 seconds to load..._
 
 ## Raw Data
 
 We collect the raw lightning and fire data through NASA Earthdata and NASA FIRMS, respectively. 
 
-The raw fire data can be found at `data/fire/DL_FIRE_SV-C2_730956/fire_archive_SV-C2_730956.csv`.
+The raw fire data can be found at `data/fire/DL_FIRE_SV-C2_745271/fire_archive_SV-C2_745271.csv`.
 
-Due to the large size of the raw lightning data, we cannot upload here to this repo. Instead, here is a (barely) short guide of how to fetch the data.
+Due to the large size of the raw lightning data, we cannot upload it here to this repo. Instead, here is a (barely) short guide of how to fetch the data.
 
 ### Fetch NASA Earthdata GLMCIERRA Lightning Strikes
 
@@ -127,6 +131,18 @@ To compute the risk layer, we first compute risk scores for every combination of
 ```bash
 pixi run build-risk
 ```
+
+## Data Souces
+
+- **Lightning:** Goodman, S. J., et al. (2013). The GOES-R Geostationary Lightning Mapper (GLM). *Atmospheric Research*, 125–126, 34–49. Data accessed via [NASA Earthdata](https://earthdata.nasa.gov/) (GOES-17 GLM CIERRA, 2020).
+
+- **Fire:** NASA FIRMS. (2020). *SUOMI VIIRS C2 Active Fire Product* [Dataset]. NASA Fire Information for Resource Management System. Area: [-124.5, 32.5, -114.1, 42.0], 2020-08-13 – 2020-08-31. Retrieved from [https://earthdata.nasa.gov/firms](https://earthdata.nasa.gov/firms)
+
+- **Land Cover:** Impact Observatory & Esri. (2022). *10m Annual Land Use Land Cover (9-class) V1* [Dataset]. Produced by Impact Observatory; licensed by Esri; hosted by Microsoft Planetary Computer. License: CC BY 4.0. Retrieved from [https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Authors
 
