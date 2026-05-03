@@ -1,6 +1,31 @@
 # Lightning Strikes and Wildfare during the 2020 California Lightning Siege
 
-This app allows you to explore ...
+This app allows you to explore lightning strikes and the resulting wildfires during the 2020 lightning siege in California in an interactive app. 
+
+The app also includes a _risk_ layer, which we compute as a **Multi-Criteria Evaluation** based on aggregated spatially and temporarily close lightning, land-cover fuel scores, and the distance to the nearest fire within 24 hours. Specifically, we employ the below formula:
+
+$$
+R(c, t) = \min\left(
+    1, \frac{
+        \log_{10} (1 + E_{4,72}(c,t) \times 10^{14.5})
+    }{
+        L_\text{max}
+    }
+    \right)
+    \times F(c) \times \frac{1}{D_{24}(i,t) + 1}
+$$
+
+where:
+
+- $R(c,t)$ is the risk score for a H3 hexagonal cell $c$ at time $t$.
+
+- $E_{4,72}$ is the sum of lightning energy in all neighbor cells at distance $k \le 4$ and between time $t$ and time $t-72$.
+
+- $L_\text{max}$ is the 99th percentile of all $\log_{10} (1 + E_{4,72}(c,t) \times 10^{14.5})$ terms in the data.
+
+- $F(c)$ is the fuel score of cell $c$, derived from it's land-cover.
+
+- $D_{24}(i,t)$ is the distance (in terms of cells) to the nearest cell with an observed fire between time $t$ and time $t-24$.
 
 ## Getting Started
 
@@ -18,7 +43,7 @@ curl -fsSL https://pixi.sh/install.sh | bash
 iwr -useb https://pixi.sh/install.ps1 | iex
 ```
 
-Note: You might have to restart your terminal after installation for the pixi command to become available._
+_Note: You might have to restart your terminal after installation for the pixi command to become available._
 
 ### 2. Clone the Repository
 
@@ -48,6 +73,8 @@ Use the app by running:
 pixi run app
 ```
 
+_Note: while I have tried to optimize the app as much as possible (I am no expert), expect it to take at least 30 seconds to load..._
+
 ## Raw Data
 
 We collect the raw lightning and fire data through NASA Earthdata and NASA FIRMS, respectively. 
@@ -56,7 +83,7 @@ The raw fire data can be found at `data/fire/DL_FIRE_SV-C2_730956/fire_archive_S
 
 Due to the large size of the raw lightning data, we cannot upload here to this repo. Instead, here is a (barely) short guide of how to fetch the data.
 
-### NASA Earthdata GLMCIERRA Lightning Strikes
+### Fetch NASA Earthdata GLMCIERRA Lightning Strikes
 
 1. **Account & Authorization:** Create a free account at [NASA Earthdata](https://urs.earthdata.nasa.gov/profile). You will likely be asked to authorize, which you must do. 
 
@@ -91,17 +118,9 @@ python process_data/process_lightning.py
 python process_data/process_fire.py
 ```
 
-## Re-Compute the Risk Layer
+## Re-Compute the Risk Grid
 
-The risk layer data is available inside the repo, but you might want to re-compute it yourself. You can do so be following the steps below:
-
-1. **Compute Engineered Features:** To compute the risk layer, we compute a small range of features on a `h3` grid over relevant cells in California. We once again meet the issue of a file being too large to comfortably fit inside this Repo. While the risk layer itself is available, the underlying features required to build it isn't. You can re-engineer these by running the below command, after which the features file will then be stored in `data/features/feature_grid.feather`. 
-
-```bash
-pixi run build-grid
-```
-
-2. **Compute Risk Layer:** Rebuild the risk layer by running:
+To compute the risk layer, we first compute risk scores for every combination of h3 cells and 1-hour bins and store it in `data/risk/risk_grid.feather`. These risk scores are based on a range of features computed from the lightning and fire data, as well as sampling from the [Esri 10-Meter Land Use/Land Cover dataset](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class) (collection: `io-lulc-9-class`). Running the below command will do all of that to generate the risk scores grid:
 
 ```bash
 pixi run build-risk
