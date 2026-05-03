@@ -93,7 +93,7 @@ Due to the large size of the raw lightning data, we cannot upload it here to thi
 
 1. **Account & Authorization:** Create a free account at [NASA Earthdata](https://urs.earthdata.nasa.gov/profile). You will likely be asked to authorize, which you must do. 
 
-2. **Run Download Script:** Navigate to the root directory of this repository and run the command below. Please note that the dataset consists of approximately 1,800 files. The total size is around 8GB, and the download will likely take several minutes depending on your connection.
+2. **Run Download Script:** Navigate to the root directory of this repository and run the command below. Please be aware that the dataset consists of 1797 files. The total size is around 8GB, and the download will likely take several minutes depending on your connection.
 
 ```bash
 pixi run download-lightning
@@ -126,7 +126,7 @@ pixi run process-fire
 
 ## Re-Compute the Risk Grid
 
-To compute the risk layer, we first compute risk scores for every combination of h3 cells and 1-hour bins in ['risk_scores_pipeline/build_risk_grid.py`](risk_scores_pipeline/build_risk_grid.py) and store it in `data/risk/risk_grid.feather`. These risk scores are based on a range of features computed from the lightning and fire data, as well as sampling from the [Esri 10-Meter Land Use/Land Cover dataset](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class) (collection: `io-lulc-9-class`). Running the below command will do all of that to generate the risk scores grid:
+To compute the risk layer, we first compute risk scores for every combination of h3 cells and 1-hour bins in [`risk_scores_pipeline/build_risk_grid.py`](risk_scores_pipeline/build_risk_grid.py) and store it in `data/risk/risk_grid.feather`. These risk scores are based on a range of features computed from the lightning and fire data, as well as sampling from the [Esri 10-Meter Land Use/Land Cover dataset](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class) (collection: `io-lulc-9-class`). Running the below command will do all of that to generate the risk scores grid:
 
 ```bash
 pixi run build-risk
