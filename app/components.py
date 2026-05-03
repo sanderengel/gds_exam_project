@@ -19,7 +19,13 @@ from state import *
 ##################
 
 @solara.component
-def MapComponent(lightning_layers: dict, fire_layers: dict, hours: list):
+def MapComponent(
+    lightning_layers: dict, 
+    fire_layers: dict, 
+    risk_exposed_layers: dict, 
+    risk_covered_layers: dict,
+    hours: list
+):
     # Instantiate map only once
     map_obj = solara.use_memo(lambda: get_map(theme), [])
     basemap_layer = solara.use_memo(lambda: get_basemap(theme), [theme.value])
@@ -27,12 +33,20 @@ def MapComponent(lightning_layers: dict, fire_layers: dict, hours: list):
     def sync_map():
         active_layers = [basemap_layer]
 
-        # Add lightning and fire layers
+        # Add layers
         if hours:
-            for layers, name in zip([lightning_layers, fire_layers], ['Lightning', 'Fire']):
+            for layers, name in zip(
+                    [risk_exposed_layers, fire_layers, lightning_layers], 
+                    ['Risk', 'Fire', 'Lightning']
+                ):
                 if name in selected_layers.value:
                     current_layer = layers.get(hours[time_index.value])
                     active_layers.append(current_layer)
+
+            # Add covered risk layer only if fire not active
+            if 'Risk' in selected_layers.value and 'Fire' not in selected_layers.value:
+                current_layer = risk_covered_layers.get(hours[time_index.value])
+                active_layers.append(current_layer)
 
         # Update layers
         map_obj.layers = tuple(active_layers)
@@ -99,27 +113,34 @@ def BottomPanel(sorted_hours: pd.DataFrame):
 
 @solara.component
 def Legend(
-    energy_min: float,
-    energy_max: float,
-    color_min: str,
-    color_mid: str,
-    color_max: str,
+    energy_bounds: tuple,
+    energy_colors: tuple,
+    risk_bounds: tuple,
+    risk_colors: tuple,
     fire_lookback: int
 ):
     with right_ghost_column(width = 320, top_margin = 20):
-        # Lightning legend
-        if 'Lightning' in selected_layers.value:
-            label = 'Lightning Energy (Log)'
-            left_text = f'<small>{energy_min:.2e} J</small>'
-            right_text = f'<small>{energy_max:.2e} J</small>'
-            color_bar(label, color_min, color_mid, color_max, left_text, right_text)
+        # Extract current state for logical checks
+        has_lightning = 'Lightning' in selected_layers.value
+        has_risk = 'Risk' in selected_layers.value
+        has_fire = 'Fire' in selected_layers.value
 
-        # Fire legend
-        if 'Fire' in selected_layers.value:
-            top_margin = '12px' if 'Lightning' in selected_layers.value else '0'
-            solara.HTML(tag = 'div', unsafe_innerHTML = f'''
-                <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:{top_margin}">
-                    <div class="legend-hex"></div>
-                    <p style="margin:0; font-weight:bold">Wildfire (Last {fire_lookback}h)</p>
-                </div>
-            ''')
+        with right_ghost_column(width = 320, top_margin = 20):
+            if has_lightning:
+                color_bar_element('Lightning Energy (Log)', energy_bounds, energy_colors, lambda x: f'{x:.2e} J')
+
+            # Risk legend
+            if has_risk:
+                risk_margin = '12px' if has_lightning else '0px'
+                with solara.Div(style = {'margin-top': risk_margin}):
+                    color_bar_element('Risk Scores', risk_bounds, risk_colors, lambda x: f'{x:.1f}')
+
+            # Fire legend
+            if has_fire:
+                fire_margin = '12px' if (has_lightning or has_risk) else '0px'
+                solara.HTML(tag = 'div', unsafe_innerHTML = f'''
+                    <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:{fire_margin}">
+                        <div class="legend-hex"></div>
+                        <p style="margin:0; font-weight:bold">Wildfire (Last {fire_lookback}h)</p>
+                    </div>
+                ''')

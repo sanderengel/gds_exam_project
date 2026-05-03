@@ -7,15 +7,32 @@
 ###############
 
 import sys
+import time
 import solara
 from pathlib import Path
-from layers import get_point_layers, get_tessellation_layers
+from layers import get_all_layers
+from colors import get_lightning_color_tuple, get_truncated_cmap, get_risk_color_tuple
 from components import *
 
 parent_dir = str(Path(__file__).parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-from utils import load_lightning_df, load_fire_df
+from utils import load_lightning_df, load_fire_df, load_risk_df
+
+
+
+#################
+### CONSTANTS ###
+#################
+
+FIRE_LOOKBACK_HOURS = 24
+RISK_THRESHOLD = 0.05
+N_RISK_BINS = 20
+START_TIME = pd.Timestamp('2020-08-16 00:00')
+END_TIME = pd.Timestamp('2020-08-31 23:00')
+TIMELINE = pd.date_range(start = START_TIME, end = END_TIME, freq = 'h')
+HOURS_LIST = TIMELINE.to_list()
+RISK_CMAP = get_truncated_cmap('cool', end = 0.5)
 
 
 
@@ -34,30 +51,37 @@ css_content = css_path.read_text()
 
 @solara.component
 def Page():
-    # Load lightning data
+    load_start = time.time()
+
+    # Load data
     lightning = solara.use_memo(lambda: load_lightning_df(), [])
-    lightning_layers = solara.use_memo(lambda: get_point_layers(lightning), [lightning])
-    lightning_hours = sorted(lightning_layers.keys())
-
-    # Compute energy bounds and colors
-    lightning_by_energy = lightning.sort_values(by = 'energy')
-    energy_sorted = lightning_by_energy['energy'].tolist()
-    lightning_colors = lightning_by_energy['color_hex'].tolist()
-    energy_min, energy_max = energy_sorted[0], energy_sorted[-1]
-    color_min, color_max = lightning_colors[0], lightning_colors[-1]
-    color_mid = lightning_colors[len(lightning_colors)//2]
-
-    # Load fire data
-    lookback_hours = 12
     fire = solara.use_memo(lambda: load_fire_df(), [])
-    fire_layers = solara.use_memo(lambda: get_tessellation_layers(fire, lookback_hours), [fire])
-    fire_hours = sorted(fire_layers.keys())
+    risk = solara.use_memo(lambda: load_risk_df(), [])
+    
+    # Build layers
+    lightning_layers, fire_layers, risk_exposed_layers, risk_covered_layers = solara.use_memo(
+        lambda: get_all_layers(
+            lightning, fire, risk,
+            TIMELINE, FIRE_LOOKBACK_HOURS, RISK_CMAP, N_RISK_BINS, RISK_THRESHOLD
+        ),
+        dependencies = [lightning, fire, risk]
+    )
 
-    # Check if hours match
-    if lightning_hours != fire_hours:
-        solara.Error('Error: Lightning hours do not match fire hours')
-        return
-    hours = lightning_hours
+    # Compute lightning energy bounds and colors
+    lightning_sorted = lightning.sort_values(by = 'energy')
+    energy_list = lightning_sorted['energy'].tolist()
+    energy_bounds = energy_list[0], energy_list[-1]
+    energy_colors = get_lightning_color_tuple(lightning_sorted)
+
+    # Compute risk bounds and colors
+    risk_valid = risk[risk['risk'] > RISK_THRESHOLD].copy() # Only consider scores above threshold
+    risk_sorted = risk_valid.sort_values(by = 'risk')
+    risk_list = risk_sorted['risk'].tolist()
+    risk_bounds = risk_list[0], risk_list[-1]
+    risk_colors = get_risk_color_tuple(RISK_CMAP, N_RISK_BINS, risk_bounds)
+
+    load_end = time.time()
+    print(f'Loaded data in {load_end - load_start:.2f} seconds.')
 
     with solara.Div(style = {
         'position': 'relative',
@@ -70,7 +94,7 @@ def Page():
         solara.Style(css_content)
 
         # Components
-        MapComponent(lightning_layers, fire_layers, hours)
+        MapComponent(lightning_layers, fire_layers, risk_exposed_layers, risk_covered_layers, HOURS_LIST)
         TopPanel()
-        BottomPanel(hours)
-        Legend(energy_min, energy_max, color_min, color_mid, color_max, lookback_hours)
+        BottomPanel(HOURS_LIST)
+        Legend(energy_bounds, energy_colors, risk_bounds, risk_colors, FIRE_LOOKBACK_HOURS)

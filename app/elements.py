@@ -83,19 +83,17 @@ def right_ghost_column(
         right_margin = 20
     )
 
-def color_bar(
+def _color_bar(
     label: str,
-    color_min: str,
-    color_mid: str,
-    color_max: str,
+    colors: tuple,
     left_text: str,
     right_text: str
 ):
     solara.HTML(tag = 'p', unsafe_innerHTML = label, style = {'textAlign': 'right', 'margin': '0 0 0 0', 'fontWeight': 'bold'})
     solara.Div(classes = ['energy-colorbar'], style = {
-        '--color_min': color_min,
-        '--color_mid': color_mid,
-        '--color_max': color_max
+        '--color_min': colors[0],
+        '--color_mid': colors[1],
+        '--color_max': colors[2]
     })
     solara.HTML(
         tag = 'div',
@@ -103,3 +101,8 @@ def color_bar(
         style = {'overflow': 'hidden', 'margin': '2px 0 0 0'}
     )
 
+def color_bar_element(label: str, bounds: tuple, colors: tuple, formatter):
+    min_val, max_val = bounds
+    left_text = f'<small>{formatter(min_val)}</small>'
+    right_text = f'<small>{formatter(max_val)}</small>'
+    _color_bar(label, colors, left_text, right_text)
