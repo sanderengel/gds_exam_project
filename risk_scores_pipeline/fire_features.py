@@ -16,19 +16,6 @@ from spatial_utils import get_min_h3_dist
 ### FUNCTIONS ###
 #################
 
-def add_fire(grid: pd.DataFrame, fire: pd.DataFrame, base_cols: list) -> pd.DataFrame:
-    print('Creating fire column...')
-    
-    # Create simplied fire df
-    fire_targets = fire[base_cols].copy()
-    fire_targets['has_fire'] = 1
-
-    # Merge onto the grid
-    grid = grid.merge(fire_targets, on = base_cols, how = 'left')
-    grid['has_fire'] = grid['has_fire'].fillna(0).astype(np.int8)
-
-    return grid
-
 def _get_fire_map(grid: pd.DataFrame, fire: pd.DataFrame, w: int) -> pd.DataFrame:
     delta = pd.Timedelta(hours = w)
     fire_map = {

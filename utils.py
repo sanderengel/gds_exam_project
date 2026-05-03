@@ -24,14 +24,6 @@ DATA_DIR = ROOT / 'data'
 ### FUNCTIONS ###
 #################
 
-def get_timeline(df: pd.DataFrame, start_offset_hours: int = 0) -> pd.DatetimeIndex:
-    # Define absolute start and end of timeline
-    start_time = df['hour_bin'].min().floor('d') + pd.Timedelta(hours = start_offset_hours)
-    end_time = df['hour_bin'].max().ceil('d') - pd.Timedelta(hours = 1)
-
-    # Generate all hours between the bounds
-    return pd.date_range(start = start_time, end = end_time, freq = 'h')
-
 def get_data_map(df: pd.DataFrame) -> dict:
     # Pre-group data into dict for fast lookup
     return {hour: group for hour, group in df.groupby('hour_bin')}
