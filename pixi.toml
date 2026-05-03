@@ -8,8 +8,6 @@ version = "0.1.0"
 [tasks]
 # Compute risk grid
 build-risk = "python risk_scores_pipeline/build_risk_grid.py"
-# Enhance risk grid
-enhance-risk = "python process_data/enhance_risk.py"
 # Run app
 app = "solara run app/sol.py"
 # Download raw lightning data
