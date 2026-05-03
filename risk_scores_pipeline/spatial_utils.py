@@ -6,17 +6,10 @@
 ### IMPORTS ###
 ###############
 
-import sys
 import h3
 import numpy as np
 import xarray as xr
 import pandas as pd
-from pathlib import Path
-
-parent_dir = str(Path(__file__).parent.parent)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-from utils import get_timeline
 
 
 
@@ -26,16 +19,6 @@ from utils import get_timeline
 
 def get_unique_cells(df: pd.DataFrame) -> set:
     return df['h3_id'].unique().tolist()
-
-def get_combined_timeline(fire: pd.DataFrame, lightning: pd.DataFrame) -> pd.DatetimeIndex:
-    # Create the full hourly timeline 
-    lightning_timeline = get_timeline(lightning)
-    fire_timeline = get_timeline(fire)
-
-    if lightning_timeline.equals(fire_timeline):
-        return lightning_timeline
-    else:
-        raise Exception('Lightning timeline does not match fire timeline')
 
 def build_sparse_impact_grid(
     fire: pd.DataFrame,
