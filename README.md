@@ -95,38 +95,38 @@ Due to the large size of the raw lightning data, we cannot upload it here to thi
 
 2. **Run Download Script:** Navigate to the root directory of this repository and run the command below. Please note that the dataset consists of approximately 1,800 files. The total size is around 8GB, and the download will likely take several minutes depending on your connection.
 
-   ```bash
-   pixi run download-lightning
-   ```
+```bash
+pixi run download-lightning
+```
 
-3. **Authentication:** Once the script starts, it will ask you for the Earthdata username and password. The script handles the transfer and temporarily stores your credentials in a secure `.netrc` file to authenticate each granule. 
+3. **Authentication:** The above command will run the download script [`scripts/download-lightning.sh`](scripts/download-lightning.sh). Once it starts, it will ask you for the Earthdata username and password. The script handles the transfer and temporarily stores your credentials in a secure `.netrc` file to authenticate each granule. 
 
 4. **Store:** The files will be automatically saved to `data/lightning/glmcierra/`. Ensure you have enough disk space before begining the process.
 
 ## Processed Lightning and Fire Data
 
-Due to the nature of NASA satellite granules, the raw lightning data contains many lightning strike observations outside the California boundary. We remove these and clean and enhance the data (e.g. by adding `h3` hexagonal tessellation IDs) in `process_data/process_lightning.py`. The raw fire data is better contained, but we nonetheless clean it, enhance it, and aggregate to polygons in `process_data/process_fire.py`. For both, the processed data is stored in `.feather` files and available directly in the repo at:
+Due to the nature of NASA satellite granules, the raw lightning data contains many lightning strike observations outside the California boundary. We remove these and clean and enhance the data (e.g. by adding `h3` hexagonal tessellation IDs) in [`process_data/process_lightning.py`](process_data/process_lightning.py). The raw fire data is better contained, but we nonetheless clean it, enhance it, and aggregate to polygons in [`process_data/process_fire.py`](process_data/process_fire.py). For both, the processed data is stored in `.feather` files and available directly in the repo at:
 
 - `data/lightning/california_lightning_siege_2020.feather`
 - `data/fire/california_fire_polygons.feather`
 
-If you went through the trouble of downloading the raw data as described above, you might want to re-process it yourself. To process the raw data and generate the two `.feather` files mentioned above, run the following command:
+If you went through the trouble of downloading the raw data as described above, you might want to re-process it yourself. To process both raw lightning and fire data and generate the two `.feather` files mentioned above, run the following command:
 
 ```bash
 pixi run process-data
 ```
 
-The above command will process both raw lightning and fire data. To process only one of the two, run the corresponding command:
+To process only one of the two, run one of the two commands below:
 
 ```bash
-python process_data/process_lightning.py
+pixi run process-lightning
 
-python process_data/process_fire.py
+pixi run process-fire
 ```
 
 ## Re-Compute the Risk Grid
 
-To compute the risk layer, we first compute risk scores for every combination of h3 cells and 1-hour bins and store it in `data/risk/risk_grid.feather`. These risk scores are based on a range of features computed from the lightning and fire data, as well as sampling from the [Esri 10-Meter Land Use/Land Cover dataset](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class) (collection: `io-lulc-9-class`). Running the below command will do all of that to generate the risk scores grid:
+To compute the risk layer, we first compute risk scores for every combination of h3 cells and 1-hour bins in ['risk_scores_pipeline/build_risk_grid.py`](risk_scores_pipeline/build_risk_grid.py) and store it in `data/risk/risk_grid.feather`. These risk scores are based on a range of features computed from the lightning and fire data, as well as sampling from the [Esri 10-Meter Land Use/Land Cover dataset](https://planetarycomputer.microsoft.com/dataset/io-lulc-9-class) (collection: `io-lulc-9-class`). Running the below command will do all of that to generate the risk scores grid:
 
 ```bash
 pixi run build-risk
@@ -151,3 +151,5 @@ Sander Engel Thilo
 _<saet@itu.dk>_
 
 **IT University of Copenhagen**
+
+_Submitted as an exam project for the Geospatial Data Science course at ITU, 2026._
