@@ -6,8 +6,6 @@
 ### IMPORTS ###
 ###############
 
-import json
-import h3
 import pandas as pd
 from pathlib import Path
 
@@ -47,19 +45,11 @@ def load_lightning_df() -> pd.DataFrame:
 def load_fire_df():
     path = DATA_DIR / 'fire' / 'california_fire_polygons.feather'
     fire = pd.read_feather(path)
-    fire['geometry'] = fire['geometry'].map(json.loads)
     fire = fire.sort_values(by = 'hour_bin', ascending = True)
     return fire
 
-def load_risk_grid():
+def load_risk_df():
     path = DATA_DIR / 'risk' / 'risk_grid.feather'
     risk_grid = pd.read_feather(path)
     risk_grid = risk_grid.sort_values(by = 'hour_bin', ascending = True)
     return risk_grid
-
-def load_risk_enhanced_grid():
-    path = DATA_DIR / 'risk' / 'risk_grid_enhanced.feather'
-    risk_grid_enhanced = pd.read_feather(path)
-    risk_grid_enhanced['geometry'] = risk_grid_enhanced['geometry'].map(json.loads)
-    risk_grid_enhanced = risk_grid_enhanced.sort_values(by = 'hour_bin', ascending = True)
-    return risk_grid_enhanced
