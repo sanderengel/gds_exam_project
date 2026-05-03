@@ -1,8 +1,10 @@
 # Lightning Strikes and Wildfare during the 2020 California Lightning Siege
 
-This app allows you to explore lightning strikes and the resulting wildfires during the 2020 lightning siege in California in an interactive app. 
+This app allows you to explore lightning strikes, resulting wildfires, and fire risk during the 2020 lightning siege in California in an interactive app. 
 
-The app also includes a _risk_ layer, which we compute as a **Multi-Criteria Evaluation** based on aggregated spatially and temporarily close lightning, land-cover fuel scores, and the distance to the nearest fire within 24 hours. Specifically, we employ the below formula:
+## Calculating Risk
+
+The app includes a _risk_ layer, which we compute as a **Multi-Criteria Evaluation** based on aggregated spatially and temporarily close lightning, land-cover fuel scores, and the distance to the nearest fire within 24 hours. Specifically, we employ the below formula:
 
 $$
 R(c, t) = \min\left(
@@ -12,7 +14,7 @@ R(c, t) = \min\left(
         L_\text{max}
     }
     \right)
-    \times F(c) \times \frac{1}{D_{24}(i,t) + 1}
+    \times F(c) \times \frac{1}{D_{24}(c,t) + 1}
 $$
 
 where:
@@ -25,7 +27,7 @@ where:
 
 - $F(c)$ is the fuel score of cell $c$, derived from it's land-cover.
 
-- $D_{24}(i,t)$ is the distance (in terms of cells) to the nearest cell with an observed fire between time $t$ and time $t-24$.
+- $D_{24}(c,t)$ is the distance (in terms of cells) between cell $c$ and the nearest cell with an observed fire between time $t$ and time $t-24$.
 
 ## Getting Started
 
