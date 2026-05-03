@@ -1,6 +1,6 @@
 # Lightning Strikes and Wildfire during the 2020 California Lightning Siege
 
-This app allows you to explore lightning strikes, resulting wildfires, and fire risk during the 2020 lightning siege in California in an interactive app. 
+This is an interactive app which allows you to explore lightning strikes, resulting wildfires, and fire risk during the 2020 lightning siege in California. 
 
 ![App screenshot](img/example.png)
 
