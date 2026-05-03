@@ -25,23 +25,35 @@ from utils import get_data_map
 
 
 
+#################
+### CONSTANTS ###
+#################
+
+DEFAULT_CENTER = [37, -120]
+DEFAULT_ZOOM = 7
+
+
+
 ##############
 ### LAYERS ###
 ##############
 
-def get_basemap(theme: solara.Reactive):
-    theme_basemaps = {
-        'Light': basemaps.CartoDB.Positron,
-        'Dark': basemaps.CartoDB.DarkMatter,
-        'Satellite': basemaps.Esri.WorldImagery
+def get_basemaps() -> dict:
+    return {
+        'Light': basemap_to_tiles(basemaps.CartoDB.Positron),
+        'Dark': basemap_to_tiles(basemaps.CartoDB.DarkMatter),
+        'Satellite': basemap_to_tiles(basemaps.Esri.WorldImagery)
     }
-    return basemap_to_tiles(theme_basemaps[theme.value])
+
+def get_basemap(theme: solara.Reactive):
+    theme_basemaps = get_basemaps()
+    return theme_basemaps[theme.value]
 
 def get_map(theme: solara.Reactive):
     initial_bm = get_basemap(theme)
     m = Map(
-        center = [37, -120],
-        zoom = 6,
+        center = DEFAULT_CENTER,
+        zoom = DEFAULT_ZOOM,
         min_zoom = 6,
         max_zoom = 12,
         layers = (initial_bm,),
@@ -53,6 +65,7 @@ def get_map(theme: solara.Reactive):
     return m
 
 def _get_hour_layers_pooled(hour_builder, timeline: pd.DatetimeIndex) -> dict:
+    # Pool hourly layers for speed
     max_workers = min(12, (os.cpu_count() or 4) + 4)
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         results = list(executor.map(hour_builder, timeline))
@@ -64,6 +77,7 @@ def get_lightning_layers(lightning: pd.DataFrame, timeline: pd.DatetimeIndex) ->
     # Pre-group data into dict for fast lookup
     data_map = get_data_map(lightning)
     
+    # Hour bouilder function to pass to pool
     def _build_hour_layer(hour: pd.Timestamp):
         group = data_map.get(hour, pd.DataFrame())
         if group.empty:
@@ -96,7 +110,7 @@ def get_lightning_layers(lightning: pd.DataFrame, timeline: pd.DatetimeIndex) ->
     layers = _get_hour_layers_pooled(_build_hour_layer, timeline)
 
     end_time = time.time()
-    print(f'  Finished creating lightning layers in {end_time - start_time:.2f} seconds.')
+    print(f'Finished creating lightning layers in {end_time - start_time:.2f} seconds.')
     return layers
 
 def _get_fire_layers(
@@ -109,10 +123,12 @@ def _get_fire_layers(
 
     fire_indexed = fire.set_index('hour_bin').sort_index()
 
+    # Hour bouilder function to pass to pool
     def _build_hour_layer(hour: pd.Timestamp):
         # Get fires from previous hours
         start_window = hour - pd.Timedelta(hours = lookback_hours)
-        cells = fire_indexed.loc[start_window:hour, 'h3_id'].unique().tolist()
+        mask = (fire_indexed.index > start_window) & (fire_indexed.index <= hour)
+        cells = fire_indexed.loc[mask, 'h3_id'].unique().tolist()
 
         if len(cells) == 0:
             return LayerGroup(layers = [])
@@ -142,7 +158,7 @@ def _get_fire_layers(
     layers = _get_hour_layers_pooled(_build_hour_layer, timeline)
 
     end_time = time.time()
-    print(f'  Finished creating fire layers in {end_time - start_time:.2f} seconds.')
+    print(f'Finished creating fire layers in {end_time - start_time:.2f} seconds.')
     return layers
 
 def _get_risk_layers(
@@ -176,6 +192,7 @@ def _get_risk_layers(
     }
     hours_with_data = set(risk['hour_bin'].unique())
 
+    # Hour bouilder function to pass to pool
     def _build_hour_layer(hour: pd.Timestamp):
         if hour not in hours_with_data:
             return LayerGroup(layers = []), LayerGroup(layers = [])
@@ -213,10 +230,10 @@ def _get_risk_layers(
     covered_layers = {hour: layers[1] for hour, layers in layers_combined.items()}
 
     end_time = time.time()
-    print(f'  Finished creating risk layers in {end_time - start_time:.2f} seconds.')
+    print(f'Finished creating risk layers in {end_time - start_time:.2f} seconds.')
     return exposed_layers, covered_layers
 
-def get_all_layers(
+def get_data_layers(
     lightning: pd.DataFrame,
     fire: pd.DataFrame,
     risk: pd.DataFrame,
