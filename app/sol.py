@@ -10,7 +10,7 @@ import sys
 import time
 import solara
 from pathlib import Path
-from layers import get_all_layers
+from layers import get_data_layers
 from colors import get_lightning_color_tuple, get_truncated_cmap, get_risk_color_tuple
 from components import *
 
@@ -32,7 +32,7 @@ START_TIME = pd.Timestamp('2020-08-16 00:00')
 END_TIME = pd.Timestamp('2020-08-31 23:00')
 TIMELINE = pd.date_range(start = START_TIME, end = END_TIME, freq = 'h')
 HOURS_LIST = TIMELINE.to_list()
-RISK_CMAP = get_truncated_cmap('cool', end = 0.5)
+RISK_CMAP = get_truncated_cmap('cool', end = 0.7)
 
 
 
@@ -60,7 +60,7 @@ def Page():
     
     # Build layers
     lightning_layers, fire_layers, risk_exposed_layers, risk_covered_layers = solara.use_memo(
-        lambda: get_all_layers(
+        lambda: get_data_layers(
             lightning, fire, risk,
             TIMELINE, FIRE_LOOKBACK_HOURS, RISK_CMAP, N_RISK_BINS, RISK_THRESHOLD
         ),
@@ -68,17 +68,16 @@ def Page():
     )
 
     # Compute lightning energy bounds and colors
-    lightning_sorted = lightning.sort_values(by = 'energy')
+    lightning_sorted = solara.use_memo(lambda: lightning.sort_values(by = 'energy'), [lightning])
     energy_list = lightning_sorted['energy'].tolist()
     energy_bounds = energy_list[0], energy_list[-1]
-    energy_colors = get_lightning_color_tuple(lightning_sorted)
+    energy_colors = solara.use_memo(lambda: get_lightning_color_tuple(lightning_sorted), [lightning_sorted])
 
     # Compute risk bounds and colors
-    risk_valid = risk[risk['risk'] > RISK_THRESHOLD].copy() # Only consider scores above threshold
-    risk_sorted = risk_valid.sort_values(by = 'risk')
-    risk_list = risk_sorted['risk'].tolist()
+    risk_valid = solara.use_memo(lambda: risk[risk['risk'] > RISK_THRESHOLD].sort_values(by = 'risk'), [risk])
+    risk_list = risk_valid['risk'].tolist()
     risk_bounds = risk_list[0], risk_list[-1]
-    risk_colors = get_risk_color_tuple(RISK_CMAP, N_RISK_BINS, risk_bounds)
+    risk_colors = solara.use_memo(lambda: get_risk_color_tuple(RISK_CMAP, N_RISK_BINS, risk_bounds), [risk_bounds])
 
     load_end = time.time()
     print(f'Loaded data in {load_end - load_start:.2f} seconds.')
@@ -94,7 +93,16 @@ def Page():
         solara.Style(css_content)
 
         # Components
-        MapComponent(lightning_layers, fire_layers, risk_exposed_layers, risk_covered_layers, HOURS_LIST)
-        TopPanel()
+        MapComponent(
+            lightning_layers, 
+            fire_layers, 
+            risk_exposed_layers, 
+            risk_covered_layers, 
+            fire,
+            risk_valid, # Pass valid risk to avoid invalid cells being clickable
+            HOURS_LIST,
+            FIRE_LOOKBACK_HOURS
+        )
+        TopPanel(RISK_THRESHOLD, FIRE_LOOKBACK_HOURS)
         BottomPanel(HOURS_LIST)
         Legend(energy_bounds, energy_colors, risk_bounds, risk_colors, FIRE_LOOKBACK_HOURS)

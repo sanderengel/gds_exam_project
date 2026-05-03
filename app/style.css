@@ -70,3 +70,8 @@
     display: inline-block;
     vertical-align: middle;
 }
+
+.v-btn.v-btn--icon {
+    height: 20px !important;
+    width: 20px !important;
+}
