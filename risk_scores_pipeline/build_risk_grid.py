@@ -45,7 +45,8 @@ lightning = load_lightning_df()
 #######################
 
 MAX_K = 4
-W = 72
+LIGHTNING_LOOKBACK_HOURS = 72
+FIRE_LOOKBACK_HOURS = 24
 base_cols = ['h3_id', 'hour_bin']
 
 # Get lightning cells
@@ -55,14 +56,14 @@ lightning_cells = get_unique_cells(lightning)
 lightning_neighbor_lookup = get_neighbor_lookup(lightning_cells, MAX_K)
 
 # Build impact grid directly from aggregated energy
-grid, energy_col = build_sparse_impact_grid(fire, lightning, lightning_neighbor_lookup, base_cols, MAX_K, W)
+grid, energy_col = build_sparse_impact_grid(fire, lightning, lightning_neighbor_lookup, base_cols, MAX_K, LIGHTNING_LOOKBACK_HOURS)
 
 # Get unique cell IDs for environmental features
 impact_cells = get_unique_cells(grid)
 coordinate_lookup = get_coordinate_lookup(impact_cells)
 
 # Add fire distance
-grid = add_fire_distance_persistent(grid, fire, w = W)
+grid = add_fire_distance_persistent(grid, fire, FIRE_LOOKBACK_HOURS)
 
 # Add fuel scores
 grid = add_fuel_scores(grid, impact_cells, coordinate_lookup)
