@@ -242,7 +242,7 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
 def BottomPanel(sorted_hours: pd.DataFrame):
     # Define ties and dates to display
     max_idx = max(0, len(sorted_hours) - 1)
-    display_time = sorted_hours[time_index.value].strftime('%b %d, %H:00 - %H:59') if sorted_hours else 'Loading...' # Display on top of slider
+    display_time = sorted_hours[time_index.value].strftime('%b %d, %H:00 - %H:59') + 'UTC' if sorted_hours else 'Loading...' # Display on top of slider
     display_dates = [h.strftime('%b %d') if h.day % 2 == 1 and h.hour == 0 else '' for h in sorted_hours] # Display as tick labels on slider
 
     # Define function to control auto play/pause
