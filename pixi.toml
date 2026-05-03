@@ -12,8 +12,12 @@ build-risk = "python risk_scores_pipeline/build_risk_grid.py"
 app = "solara run app/sol.py"
 # Download raw lightning data
 download-lightning = "mkdir -p data/lightning/glmcierra && cd data/lightning/glmcierra && bash ../../../scripts/download-lightning.sh"
-# Process raw data
+# Process all raw data
 process-data = "python process_data/process_lightning.py && python process_data/process_fire.py"
+# Process only lightning
+process-lightning = "python process_data/process_lightning.py"
+# Process only fire
+process-fire = "python process_data/process_fire.py"
 
 [dependencies]
 python = "==3.11"
