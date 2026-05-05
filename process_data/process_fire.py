@@ -6,10 +6,10 @@
 ### IMPORTS ###
 ###############
 
-import sys
-import json
+import osmnx as ox
 import h3
 import pandas as pd
+import geopandas as gpd
 from pathlib import Path
 
 
@@ -55,6 +55,21 @@ fire = fire.rename(columns = {'latitude': 'lat', 'longitude': 'lon'})
 
 # Add tessellation IDs
 fire['h3_id'] = [h3.latlng_to_cell(lat, lon, 7) for lat, lon in zip(fire['lat'], fire['lon'])]
+
+# Filter to only keep California observations
+epsg = 'EPSG:4326'
+ca_boundary = ox.geocode_to_gdf('California, USA').to_crs(epsg)
+fire_gdf = gpd.GeoDataFrame(
+    fire,
+    geometry = gpd.points_from_xy(fire['lon'], fire['lat']),
+    crs = epsg
+)
+fire = gpd.sjoin(
+    fire_gdf, 
+    ca_boundary[['geometry']], 
+    how = 'inner',
+    predicate = 'intersects',
+).drop(columns = ['geometry', 'index_right'])
 
 # Group by hours and tessellation IDs
 fire_agg = fire.groupby(['hour_bin', 'h3_id']).agg({'brightness': 'max'}).reset_index()
