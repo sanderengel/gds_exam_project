@@ -47,10 +47,9 @@ fire['timestamp'] = pd.to_datetime(
     format = '%Y-%m-%d %H%M'
 )
 fire['hour_bin'] = fire['timestamp'].dt.floor('h')
-fire['timestamp'] = pd.to_datetime(fire['timestamp']).dt.tz_localize(None)
 
 # Keep only relevant columns and rename
-fire = fire[['latitude', 'longitude', 'brightness', 'timestamp', 'hour_bin']]
+fire = fire[['latitude', 'longitude', 'timestamp', 'hour_bin']]
 fire = fire.rename(columns = {'latitude': 'lat', 'longitude': 'lon'})
 
 # Add tessellation IDs
@@ -71,8 +70,8 @@ fire = gpd.sjoin(
     predicate = 'intersects',
 ).drop(columns = ['geometry', 'index_right'])
 
-# Group by hours and tessellation IDs
-fire_agg = fire.groupby(['hour_bin', 'h3_id']).agg({'brightness': 'max'}).reset_index()
+# Keep unique combinations of hour_bin and h3_id
+fire = fire.drop_duplicates(['hour_bin', 'h3_id'])
 
 
 
@@ -80,5 +79,5 @@ fire_agg = fire.groupby(['hour_bin', 'h3_id']).agg({'brightness': 'max'}).reset_
 ### SAVE ###
 ############
 
-fire_agg.to_feather(OUTPUT_PATH)
-print(f'Saved {len(fire_agg)} fire polygons to {OUTPUT_PATH}.')
+fire.to_feather(OUTPUT_PATH)
+print(f'Saved {len(fire)} fire polygons to {OUTPUT_PATH}.')
