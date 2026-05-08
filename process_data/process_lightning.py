@@ -99,6 +99,8 @@ filepaths = glob(os.path.join(INPUT_BASE_PATH, '*.nc')) # Extract all .nc files
 n_files = len(filepaths)
 print(f'Filtering lightning flashes in {n_files} files for exact California geometry...')
 
+total_before = 0
+
 # Iterate over each file
 for i, fp in enumerate(filepaths):
     try:
@@ -106,6 +108,7 @@ for i, fp in enumerate(filepaths):
         with xr.open_dataset(fp) as ds:
             # Extract latitudes, longitudes, energy, time offsets
             lats, lons, energy, offsets = _extract_values(ds)
+            total_before += len(lats)
 
             # Get rought cut mask
             mask = _get_bbox_mask(lats, lons)
@@ -128,6 +131,8 @@ for i, fp in enumerate(filepaths):
 
     except Exception as e:
         print(f'Error in {os.path.basename(fp)}: {e}')
+
+print(f'Total flashes before filtering: {total_before}')
 
 
 
