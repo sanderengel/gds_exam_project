@@ -172,7 +172,7 @@ def _get_risk_layers(
     print('Creating risk layers...')
     
     # Drop values below min_risk and create discrete buckets
-    risk = risk[risk['risk'] > min_risk].copy()
+    risk = risk[risk['risk'] >= min_risk].copy()
     risk['style_bin'] = (risk['risk'] * n_bins).astype(int) 
 
     # Create covered flag (true if covered by fire)
