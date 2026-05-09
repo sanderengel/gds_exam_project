@@ -87,9 +87,6 @@ def add_fuel_scores(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataF
 
     lats, lons = zip(*[h3.cell_to_latlng(c) for c in cells])
     bbox = [min(lons), min(lats), max(lons), max(lats)]
-    
-    # # Get slope data
-    # coordinate_lookup['slope'] = _fetch_slope_data(bbox, lats, x_da, y_da, catalog)
 
     # Get fuel data
     landcover = _fetch_landcover_data(bbox, x_da, y_da, catalog)
