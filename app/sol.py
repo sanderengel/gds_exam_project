@@ -26,7 +26,7 @@ from utils import load_lightning_df, load_fire_df, load_risk_df
 #################
 
 FIRE_LOOKBACK_HOURS = 24
-RISK_THRESHOLD = 0.05
+RISK_THRESHOLD = 0.1
 N_RISK_BINS = 20
 START_TIME = pd.Timestamp('2020-08-16 00:00')
 END_TIME = pd.Timestamp('2020-08-31 23:00')
@@ -74,7 +74,7 @@ def Page():
     energy_colors = solara.use_memo(lambda: get_lightning_color_tuple(lightning_sorted), [lightning_sorted])
 
     # Compute risk bounds and colors
-    risk_valid = solara.use_memo(lambda: risk[risk['risk'] > RISK_THRESHOLD].sort_values(by = 'risk'), [risk])
+    risk_valid = solara.use_memo(lambda: risk[risk['risk'] >= RISK_THRESHOLD].sort_values(by = 'risk'), [risk])
     risk_list = risk_valid['risk'].tolist()
     risk_bounds = risk_list[0], risk_list[-1]
     risk_colors = solara.use_memo(lambda: get_risk_color_tuple(RISK_CMAP, N_RISK_BINS, risk_bounds), [risk_bounds])
