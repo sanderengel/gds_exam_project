@@ -19,7 +19,8 @@ def _compute_risk(
     energy: np.ndarray,
     fuel_scores: np.ndarray,
     fire_distances: np.ndarray,
-    energy_scale_factor: float = 10**14.5
+    energy_scale_factor: float = 10**14.5,
+    fire_half_distance: int = 2 # Represents distance where fire decay halfes risk score
 ) -> np.ndarray:
     # Scale energy
     energy_scaled = energy * energy_scale_factor
@@ -34,7 +35,7 @@ def _compute_risk(
     energy_term = np.minimum(1, energy_transformed / L_max)
 
     # Compute fire distance decay
-    fire_distance_decay = 1 / (fire_distances + 1)
+    fire_distance_decay = fire_half_distance / (fire_distances + fire_half_distance)
 
     # Compute risk
     risk = energy_term * fuel_scores * fire_distance_decay
