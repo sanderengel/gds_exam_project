@@ -16,20 +16,20 @@ R(c, t) = \min\left(
         L_\text{max}
     }
     \right)
-    \times F(c) \times \frac{1}{D_{24}(c,t) + 1}
+    \times F(c) \times \frac{2}{\min(100, D_{24}(c,t))+ 2}
 $$
 
 where:
 
-- $R(c,t)$ is the risk score for a H3 hexagonal cell $c$ at time $t$.
+- $R(c,t)$ is the risk score for a H3 hexagonal cell $c$ at hour $t$.
 
-- $E_{4,72}$ is the sum of lightning energy in all neighbor cells at distance $k \le 4$ and between times $t$ and $t-72$.
+- $E_{4,72}$ is the sum of lightning energy in all neighbor cells at distance $k \le 4$ and between hours $t$ and $t-72$.
 
 - $L_\text{max}$ is the 99th percentile of all $\log_{10} (1 + E_{4,72}(c,t) \times 10^{14.5})$ terms in the data.
 
 - $F(c)$ is the fuel score of cell $c$, derived from it's land-cover.
 
-- $D_{24}(c,t)$ is the distance (in terms of cells) between cell $c$ and the nearest cell with an observed fire between times $t$ and $t-24$.
+- $D_{24}(c,t)$ is the distance (in terms of cells) between cell $c$ and the nearest cell with an observed fire between hours $t$ and $t-24$.
 
 ## Getting Started
 
