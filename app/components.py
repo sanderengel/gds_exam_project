@@ -11,10 +11,9 @@ import solara
 import pandas as pd
 import time
 import threading
-import ipywidgets as widgets
-from ipyleaflet import LayerGroup, WidgetControl
+from ipyleaflet import LayerGroup
 from elements import *
-from layers import get_basemaps, get_map, DEFAULT_CENTER, DEFAULT_ZOOM
+from layers import get_basemaps, get_map
 from state import *
 
 
@@ -47,9 +46,15 @@ def MapComponent(
     solara.use_effect(_setup_map, [])
 
     # Create fire and risk lookups once
-    risk_lookup = solara.use_memo(lambda: risk.set_index(['hour_bin', 'h3_id'])[['risk', 'dist_fire']].to_dict('index'), [])
+    risk_lookup = solara.use_memo(
+        lambda: risk.set_index(['hour_bin', 'h3_id'])[[
+            'energy_term', 'landcover', 'fuel_score', 'dist_fire', 'risk'
+        ]].to_dict('index'), 
+        []
+    )
+    fire_indexed = fire.set_index('hour_bin').sort_index()
+
     def _build_fire_cells():
-        fire_indexed = fire.set_index('hour_bin').sort_index()
         result = {}
         for hour in hours:
             start = hour - pd.Timedelta(hours = fire_lookback_hours)
@@ -68,6 +73,7 @@ def MapComponent(
         cell_data = {'h3_id': cell}
         if risk_row:
             cell_data |= risk_row
+        print(cell_data)
         return cell_data
 
     # Update cell information on click
@@ -84,7 +90,12 @@ def MapComponent(
         lat, lon = coords
         cell = h3.latlng_to_cell(lat, lon, 7)
         result = _evaluate_cell(cell, hours[time_index.value], selected_layers.value)
-        inspector_data.set({**result, 'lat': lat, 'lon': lon} if result else None)
+
+        if result:
+            cell_lat, cell_lon = h3.cell_to_latlng(cell)
+            inspector_data.set({**result, 'lat': cell_lat, 'lon': cell_lon})
+        else:
+            inspector_data.set(None)
 
     def _setup_interaction():
         map_obj.on_interaction(_on_map_interaction)
@@ -180,9 +191,15 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
                 with solara.v.CardText():
                     solara.HTML(tag = 'div', unsafe_innerHTML = f"""
                         <div style="color: {text_color};">
-                            <p><span style="font-weight:600;">Lightning Layer:</span> Shows each lightning flash observed by NASA's GOES-17 satellite, colored by energy in joules (J).</p>
+                            <p><span style="font-weight:600;">Lightning Layer:</span> Shows each lightning flash observed by NASA's GOES-17 satellite, colored by the at-sensor radiant energy (J) captured by the GOES-17 satellite.</p>
                             <p><span style="font-weight:600;">Fire Layer:</span> Shows areas where NASA's Suomi NPP satellite has observed fire. Each hexagonal cell is highlighted in red if the satellite observed fire inside the cell's boundaries at least once in the preceding {fire_lookback_hours} hours of the selected time.</p>
-                            <p><span style="font-weight:600;">Risk Layer:</span> Shows cells with risk score ≥ {min_risk}. The score is a normalized product of three factors: a log-scaled lightning energy term (summed over the preceding 72 hours and all neighbors within distance 4), a land-cover fuel score, and a fire-distance decay which increases risk near recently (24 hours) active fires. Higher risk scores indicate a higher chance of wildfire in the immediate future. You can see the exact formula used in the project's <a href="https://github.com/sanderengel/gds_exam_project/tree/master" target="_blank">README</a>.</p>
+                            <p><span style="font-weight:600;">Risk Layer:</span> Shows cells with risk score ≥ {min_risk}. The score is a product of three terms, each in range [0,1]:</p>
+                            <ul style="margin-top:0; margin-bottom:0.5em;">
+                                <li><i>Lightning Score:</i> a log-scaled lightning energy term (summed over the preceding 72 hours and all neighbors within distance 4).</li>
+                                <li><i>Fuel Score:</i> a land-cover fuel score based on the ground terrain type.</li>
+                                <li><i>Fire Proximity Score:</i> a fire-distance decay which increases risk near recently (24 hours) active fires.</li>
+                            </ul>
+                            <p>Higher risk scores indicate a higher chance of wildfire in the immediate future. You can see the exact formula used in the project's <a href="https://github.com/sanderengel/gds_exam_project/tree/master" target="_blank">README</a>.</p>
                         </div>
                     """)
                 with solara.v.CardActions():
@@ -207,36 +224,53 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
             with solara.Tooltip('Satellite'):
                 solara.Button(icon_name = 'mdi-satellite-variant', text = True, style = {'--button-color': satellite_green})
 
-        # Cell information
+        # Cell information if risk or fire layer active
         layers = selected_layers.value
         if 'Risk' in layers or 'Fire' in layers:
+            data = inspector_data.value
+
             with solara.Div(style = {'margin-top': '16px'}):
                 solara.Markdown('**Cell Information**')
-                data = inspector_data.value
                 if data is None:
                     solara.Markdown('_Click an active cell for info._')
                 else:
+
                     with solara.Div(style = {'margin-bottom': '-10px'}):
                         solara.Markdown(f"**H3 cell ID:** {data['h3_id']}")
                     with solara.Div(style = {'margin-bottom': '-10px'}):
                         solara.Markdown(f"**Latitude:** {data['lat']:.2f}")
                     with solara.Div(style = {'margin-bottom': '-10px'}):
                         solara.Markdown(f"**Longitude:** {data['lon']:.2f}")
-                    
-                    # Only show risk score if risk layer on
-                    if 'Risk' in layers:
-                        with solara.Div(style = {'margin-bottom': '-10px'}):
-                            risk_score = f"{data['risk']:.2f}" if 'risk' in data else f'<{min_risk}'
-                            solara.Markdown(f"**Risk score:** {risk_score}")
+
+                    dist_fire = data.get('dist_fire', 0)
                     with solara.Div(style = {'margin-bottom': '-10px'}):
-                        dist_fire = data.get('dist_fire', 0)
                         if dist_fire > 1:
                             dist_fire_str = f'{dist_fire} cells'
                         elif dist_fire == 1:
                             dist_fire_str = f'{dist_fire} cell'
                         else:
                             dist_fire_str = 'active fire'
-                        solara.Markdown(f"**Distance to fire:** {dist_fire_str}")
+                        solara.Markdown(f'**Distance to fire:** {dist_fire_str}')
+
+            # Only show risk section if risk layer on
+            if 'Risk' in layers and data is not None:
+                with solara.Div(style = {'margin-top': '16px'}):
+                    solara.Markdown('**Risk Information**')
+
+                    # Only show actual risk term if above threshold
+                    if 'risk' in data:
+                        with solara.Div(style = {'margin-bottom': '-10px'}):
+                            solara.Markdown(f'**Fire Proximity Score:** {2/(dist_fire + 2):.2f}')
+                        with solara.Div(style = {'margin-bottom': '-10px'}):
+                            solara.Markdown(f"**Lightning Score:** {data['energy_term']:.2f}")
+                        with solara.Div(style = {'margin-bottom': '-10px'}):
+                            solara.Markdown(f"**Fuel Score:** {data['fuel_score']:.2f} ({data['landcover']})")   
+                        risk_score = f"{data['risk']:.2f}"
+                    else:
+                        risk_score = f'<{min_risk}'
+
+                    with solara.Div(style = {'margin-bottom': '-10px'}):
+                        solara.Markdown(f'**Risk score:** {risk_score}')
 
 @solara.component
 def BottomPanel(sorted_hours: pd.DataFrame):
@@ -301,7 +335,7 @@ def Legend(
 
         with right_ghost_column(width = 320, top_margin = 20):
             if has_lightning:
-                color_bar_element('Lightning Energy (Log)', energy_bounds, energy_colors, lambda x: f'{x:.2e} J')
+                color_bar_element('Radiant Lightning Energy (Log)', energy_bounds, energy_colors, lambda x: f'{x:.2e} J')
 
             # Risk legend
             if has_risk:
