@@ -89,7 +89,7 @@ grid = add_risk(grid, energy_col)
 ###############
 
 # Drop columns which are no longer used
-keep_cols = base_cols + ['dist_fire', 'risk']
+keep_cols = base_cols + ['energy_term', 'landcover', 'fuel_score', 'dist_fire', 'risk']
 risk_grid = grid[keep_cols].copy()
 
 # Drop any rows with 0 risk

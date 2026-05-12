@@ -31,7 +31,7 @@ HTTPS_ENV_ADDITIONS = {
 
 FUEL_MAP = {
     1: 0.0,  # Water, not ignitable
-    2: 1.0, # Trees, highly ignitable
+    2: 1.0,  # Trees, highly ignitable
     4: 0.2,  # Flooded vegetation, slightly ignitable
     5: 0.4,  # Crops, somewhat ignitable
     7: 0.1,  # Built area, barely ignitable
@@ -40,12 +40,24 @@ FUEL_MAP = {
     11: 0.8  # Rangeland, highly ignitable
 }
 
+LANDCOVER_MAP = {
+    1: 'Water',
+    2: 'Trees',
+    4: 'Flooded vegetation',
+    5: 'Crops',
+    7: 'Built area',
+    8: 'Bare ground',
+    9: 'Snow/ice',
+    11: 'Rangeland'
+}
+
+
 
 #################
 ### FUNCTIONS ###
 #################
 
-def _fetch_landcover_data(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, catalog: Client) -> np.ndarray:
+def _fetch_landcover_scores(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, catalog: Client) -> np.ndarray:
     print('Fetching landcover data...')
     search_lc = catalog.search(
         collections = ['io-lulc-9-class'], 
@@ -71,10 +83,6 @@ def _fetch_landcover_data(bbox: list, x_da: xr.DataArray, y_da: xr.DataArray, ca
     # Add to lookup
     return lc_raster.sel(x = x_da, y = y_da, method = 'nearest').values
 
-def _get_fuel_scores(landcover: np.ndarray) -> pd.Series:
-    # Map land cover to fuel scores
-    return pd.Series(landcover).map(FUEL_MAP).fillna(0)
-
 def add_fuel_scores(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataFrame) -> pd.DataFrame: 
     # Initialize PC catalog
     catalog = pystac_client.Client.open(
@@ -89,12 +97,13 @@ def add_fuel_scores(grid: pd.DataFrame, cells: list, coordinate_lookup: pd.DataF
     bbox = [min(lons), min(lats), max(lons), max(lats)]
 
     # Get fuel data
-    landcover = _fetch_landcover_data(bbox, x_da, y_da, catalog)
-    coordinate_lookup['fuel_score'] = _get_fuel_scores(landcover)
+    landcover_scores = _fetch_landcover_scores(bbox, x_da, y_da, catalog)
+    coordinate_lookup['landcover'] = pd.Series(landcover_scores).map(LANDCOVER_MAP).fillna('Unknown')
+    coordinate_lookup['fuel_score'] = pd.Series(landcover_scores).map(FUEL_MAP).fillna(0)
 
     # Map onto grid
     grid = grid.merge(
-        coordinate_lookup[['h3_id', 'fuel_score']],
+        coordinate_lookup[['h3_id', 'landcover', 'fuel_score']],
         on = 'h3_id',
         how = 'left'
     )
