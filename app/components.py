@@ -230,8 +230,8 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
                 solara.Markdown('_Click an active cell for info._')
             else:
                 spaced_text(f"**H3 cell ID:** {data['h3_id']}")
-                spaced_text(f"**Latitude:** {data['lat']:.2f}")
-                spaced_text(f"**Longitude:** {data['lon']:.2f}")
+                spaced_text(f"**Latitude:** {data['lat']:.2f}°")
+                spaced_text(f"**Longitude:** {data['lon']:.2f}°")
 
                 dist_fire = data.get('dist_fire', 0)
                 if dist_fire > 1:
