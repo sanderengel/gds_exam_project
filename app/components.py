@@ -258,12 +258,6 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
                         risk_score = f'<{min_risk}'
                     
                     spaced_text(f'**Risk score:** {risk_score}')
-
-                        #     tooltip_text = 'Fire Proximity Score = 2 / (2 + Distance to fire)'
-                        #     tooltip_text = '<b>Lightning Score:</b> Aggregated, log-scaled, and normalized lightning energy.'
-                        #     tooltip_text = f"<b>Fuel Score:</b> [0-1] flammability level for {data['landcover']} landcover."
-                        # risk_score_tooltip = '<b>Risk Score</b> = Lightning Score x Fuel Score x Fire Proximity Score'
-                        # risk_score_tooltip = ''
                     
 @solara.component
 def BottomPanel(sorted_hours: pd.DataFrame):
