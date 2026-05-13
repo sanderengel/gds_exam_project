@@ -207,22 +207,16 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
 
         # Layer selection buttons
         with solara.ToggleButtonsMultiple(value = selected_layers):
-            with solara.Tooltip('Lightning'):
-                solara.Button(icon_name = 'mdi-flash', text = True, style = {'--button-color': lightning_orange})
-            with solara.Tooltip('Fire'):
-                solara.Button(icon_name = 'mdi-fire', text = True, style = {'--button-color': fire_red})
-            with solara.Tooltip('Risk'):
-                solara.Button(icon_name = 'mdi-alert', text = True, style = {'--button-color': risk_blue})
+            button_element('mdi-flash', lightning_orange, tooltip_text = 'Lightning')
+            button_element('mdi-fire', fire_red, tooltip_text = 'Fire')
+            button_element('mdi-alert', risk_blue, tooltip_text = 'Risk')
 
         # Theme selection buttons
         solara.Markdown('**Theme**')
         with solara.ToggleButtonsSingle(value = theme):
-            with solara.Tooltip('Light'):
-                solara.Button(icon_name = 'mdi-weather-sunny', text = True, style = {'--button-color': sun_yellow})
-            with solara.Tooltip('Dark'):
-                solara.Button(icon_name = 'mdi-weather-night', text = True, style = {'--button-color': moon_blue})
-            with solara.Tooltip('Satellite'):
-                solara.Button(icon_name = 'mdi-satellite-variant', text = True, style = {'--button-color': satellite_green})
+            button_element('mdi-weather-sunny', sun_yellow, tooltip_text = 'Light')
+            button_element('mdi-weather-night', moon_blue, tooltip_text = 'Dark')
+            button_element('mdi-satellite-variant', satellite_green, tooltip_text = 'Satellite')
 
         # Cell information if risk or fire layer active
         layers = selected_layers.value
@@ -231,47 +225,46 @@ def TopPanel(min_risk: float, fire_lookback_hours: int):
 
             with solara.Div(style = {'margin-top': '16px'}):
                 solara.Markdown('**Cell Information**')
-                if data is None:
-                    solara.Markdown('_Click an active cell for info._')
+
+            if data is None:
+                solara.Markdown('_Click an active cell for info._')
+            else:
+                spaced_text(f"**H3 cell ID:** {data['h3_id']}")
+                spaced_text(f"**Latitude:** {data['lat']:.2f}")
+                spaced_text(f"**Longitude:** {data['lon']:.2f}")
+
+                dist_fire = data.get('dist_fire', 0)
+                if dist_fire > 1:
+                    dist_fire_str = f'{dist_fire} cells'
+                elif dist_fire == 1:
+                    dist_fire_str = f'{dist_fire} cell'
                 else:
+                    dist_fire_str = 'active fire'
+                spaced_text(f'**Distance to fire:** {dist_fire_str}')
 
-                    with solara.Div(style = {'margin-bottom': '-10px'}):
-                        solara.Markdown(f"**H3 cell ID:** {data['h3_id']}")
-                    with solara.Div(style = {'margin-bottom': '-10px'}):
-                        solara.Markdown(f"**Latitude:** {data['lat']:.2f}")
-                    with solara.Div(style = {'margin-bottom': '-10px'}):
-                        solara.Markdown(f"**Longitude:** {data['lon']:.2f}")
-
-                    dist_fire = data.get('dist_fire', 0)
-                    with solara.Div(style = {'margin-bottom': '-10px'}):
-                        if dist_fire > 1:
-                            dist_fire_str = f'{dist_fire} cells'
-                        elif dist_fire == 1:
-                            dist_fire_str = f'{dist_fire} cell'
-                        else:
-                            dist_fire_str = 'active fire'
-                        solara.Markdown(f'**Distance to fire:** {dist_fire_str}')
-
-            # Only show risk section if risk layer on
-            if 'Risk' in layers and data is not None:
-                with solara.Div(style = {'margin-top': '16px'}):
-                    solara.Markdown('**Risk Information**')
+                # Only show risk section if risk layer on
+                if 'Risk' in layers:
+                    with solara.Div(style = {'margin-top': '16px'}):
+                        solara.Markdown('**Risk Information**')
 
                     # Only show actual risk term if above threshold
                     if 'risk' in data:
-                        with solara.Div(style = {'margin-bottom': '-10px'}):
-                            solara.Markdown(f'**Fire Proximity Score:** {2/(dist_fire + 2):.2f}')
-                        with solara.Div(style = {'margin-bottom': '-10px'}):
-                            solara.Markdown(f"**Lightning Score:** {data['energy_term']:.2f}")
-                        with solara.Div(style = {'margin-bottom': '-10px'}):
-                            solara.Markdown(f"**Fuel Score:** {data['fuel_score']:.2f} ({data['landcover']})")   
+                        spaced_text(f'**Fire Proximity Score:** {2/(dist_fire + 2):.2f}')
+                        spaced_text(f"**Lightning Score:** {data['energy_term']:.2f}")
+                        spaced_text(f"**Fuel Score:** {data['fuel_score']:.2f} ({data['landcover']})")
+ 
                         risk_score = f"{data['risk']:.2f}"
                     else:
                         risk_score = f'<{min_risk}'
+                    
+                    spaced_text(f'**Risk score:** {risk_score}')
 
-                    with solara.Div(style = {'margin-bottom': '-10px'}):
-                        solara.Markdown(f'**Risk score:** {risk_score}')
-
+                        #     tooltip_text = 'Fire Proximity Score = 2 / (2 + Distance to fire)'
+                        #     tooltip_text = '<b>Lightning Score:</b> Aggregated, log-scaled, and normalized lightning energy.'
+                        #     tooltip_text = f"<b>Fuel Score:</b> [0-1] flammability level for {data['landcover']} landcover."
+                        # risk_score_tooltip = '<b>Risk Score</b> = Lightning Score x Fuel Score x Fire Proximity Score'
+                        # risk_score_tooltip = ''
+                    
 @solara.component
 def BottomPanel(sorted_hours: pd.DataFrame):
     # Define ties and dates to display

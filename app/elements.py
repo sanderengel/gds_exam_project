@@ -106,3 +106,17 @@ def color_bar_element(label: str, bounds: tuple, colors: tuple, formatter):
     left_text = f'<small>{formatter(min_val)}</small>'
     right_text = f'<small>{formatter(max_val)}</small>'
     _color_bar(label, colors, left_text, right_text)
+
+def spaced_text(text: str):
+    with solara.Div(style = {'margin-bottom': '-10px'}):
+        solara.Markdown(text)
+
+def _button(icon_name: str, color: str):
+    solara.Button(icon_name = icon_name, text = True, style = {'--button-color': color})
+
+def button_element(icon_name: str, color: str, tooltip_text: str = ''):
+    if tooltip_text:
+        with solara.Tooltip(tooltip_text):
+            _button(icon_name, color)
+    else:
+        _button(icon_name, color)
