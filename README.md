@@ -11,7 +11,7 @@ The app includes a _risk_ layer, which we compute as a **Multi-Criteria Evaluati
 $$
 R(c, t) = \min\left(
     1, \frac{
-        \log_{10} (1 + E_{4,72}(c,t) \times 10^{14.5})
+        \log_{10} (1 + 10^{14.5}E_{4,72}(c,t))
     }{
         L_\text{max}
     }
