@@ -65,7 +65,6 @@ def build_sparse_impact_grid(
     impact_grid = energy_grid.merge(fire_seeds, on = base_cols, how = 'outer')
     impact_grid['has_fire'] = impact_grid['has_fire'].fillna(0).astype(np.int8)
     impact_grid[energy_col] = impact_grid[energy_col].fillna(0)
-    print(f'    Created full lightning and fire impact grid with {len(impact_grid)} rows.')
 
     # Cut off anything outside start and end time
     impact_grid = impact_grid[
@@ -73,6 +72,7 @@ def build_sparse_impact_grid(
         (impact_grid['hour_bin'] <= end_time)
     ]
 
+    print(f'    Created full lightning and fire impact grid with {len(impact_grid)} rows.')
     impact_grid = impact_grid.sort_values(base_cols).reset_index(drop = True)
     return impact_grid, energy_col
 
